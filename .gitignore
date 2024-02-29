@@ -1,3 +1,6 @@
-/vendor
-/.idea
-/data
+vendor/
+/data/
+.idea/
+.env
+/.phpunit.result.cache
+/tests/prepare-data/manifestData.json

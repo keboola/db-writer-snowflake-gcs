@@ -2,18 +2,17 @@
 
 declare(strict_types=1);
 
-use Keboola\Component\Logger;
-use Keboola\Component\UserException;
-use MyComponent\Component;
+use Keboola\CommonExceptions\UserExceptionInterface;
+use Keboola\DbWriter\SnowflakeApplication;
+use Keboola\DbWriter\Writer\Logger\SnowflakeLogger;
 
 require __DIR__ . '/../vendor/autoload.php';
 
-$logger = new Logger();
+$logger = new SnowflakeLogger();
 try {
-    $app = new Component($logger);
+    $app = new SnowflakeApplication($logger);
     $app->execute();
-    exit(0);
-} catch (UserException $e) {
+} catch (UserExceptionInterface $e) {
     $logger->error($e->getMessage());
     exit(1);
 } catch (Throwable $e) {
