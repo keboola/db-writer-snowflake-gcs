@@ -11,6 +11,7 @@
     ],
     "require": {
         "php": "^8.2",
+        "ext-odbc": "*",
         "ext-PDO": "*",
         "ext-json": "*",
         "ext-mbstring": "*",

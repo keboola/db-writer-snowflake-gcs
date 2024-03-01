@@ -146,45 +146,6 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
         );
     }
 
-    public function describeTableColumnsQueryStatement(Connection $connection, string $tableName): string
-    {
-        return sprintf(
-            'SHOW COLUMNS IN %s.%s',
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($tableName),
-        );
-    }
-
-    public function addUniqueKeyQueryStatement(Connection $connection, string $tableName, string $columnName): string
-    {
-        return sprintf(
-            'ALTER TABLE %s.%s ADD UNIQUE (%s)',
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($tableName),
-            $connection->quoteIdentifier($columnName),
-        );
-    }
-
-    public function addForeignKeyQueryStatement(
-        Connection $connection,
-        string $tableName,
-        string $columnName,
-        string $foreignKeyTable,
-        string $foreignKeyColumn,
-    ): string {
-        return sprintf(
-            'ALTER TABLE %s.%s ADD CONSTRAINT FK_%s_%s FOREIGN KEY (%s) REFERENCES %s.%s(%s)',
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($tableName),
-            $foreignKeyTable,
-            $foreignKeyColumn,
-            $connection->quoteIdentifier($columnName),
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($foreignKeyTable),
-            $connection->quoteIdentifier($foreignKeyColumn),
-        );
-    }
-
     private function buildItemsSqlDefinition(Connection $connection, array $items, ?array $primaryKeys = []): string
     {
         $sqlItems = [];

@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbWriter\Writer;
 
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
-use Keboola\DbWriter\Configuration\ValueObject\SnowflakeItemConfig;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriterAdapter\Connection\Connection;
 use Keboola\DbWriterAdapter\WriteAdapter;
@@ -31,42 +30,6 @@ class Snowflake extends BaseWriter
     {
         $this->databaseConfig = $databaseConfig;
         parent::__construct($this->databaseConfig, $logger);
-    }
-
-    public function createForeignKeys(ExportConfig $exportConfig): void
-    {
-        /** @var SnowflakeItemConfig[] $items */
-        $items = $exportConfig->getItems();
-        $items = array_filter($items, fn(SnowflakeItemConfig $item) => $item->hasForeignKey());
-        if (empty($items)) {
-            return;
-        }
-
-        foreach ($items as $item) {
-            if (!$this->adapter->tableExists($item->getForeignKeyTable())) {
-                continue;
-            }
-
-            $isSameTypeColumns = $this->adapter->isSameTypeColumns(
-                $exportConfig->getDbName(),
-                $item->getName(),
-                $item->getForeignKeyTable(),
-                $item->getForeignKeyColumn(),
-            );
-
-            if (!$isSameTypeColumns) {
-                throw new UserException(sprintf(
-                    'Foreign key column "%s" in table "%s" has different type than column in table "%s"',
-                    $item->getForeignKeyColumn(),
-                    $item->getForeignKeyTable(),
-                    $item->getName(),
-                ));
-            }
-
-            $this->adapter->addUniqueKeyIfMissing($item->getForeignKeyTable(), $item->getForeignKeyColumn());
-
-            $this->adapter->addForeignKey($exportConfig->getDbName(), $item);
-        }
     }
 
     protected function writeFull(ExportConfig $exportConfig): void

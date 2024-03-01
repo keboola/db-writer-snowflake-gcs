@@ -22,26 +22,12 @@ class SnowflakeApplication extends Application
     protected function run(): void
     {
         $parameters = $this->getConfig()->getParameters();
+        $parameters = $this->validateTableItems($parameters);
+
         $writerFactory = new WriterFactory($this->getConfig());
         /** @var Snowflake $writer */
         $writer = $writerFactory->create($this->getLogger(), $this->createDatabaseConfig($parameters['db']));
-
-        if (!$this->isRowConfiguration($parameters)) {
-            $filteredTables = array_filter($parameters['tables'], fn($table) => $table['export']);
-            unset($parameters['tables']);
-            foreach ($filteredTables as $k => $filteredTable) {
-                $filteredTable = $this->validateTableItems($filteredTable);
-                $filteredTable = array_merge($parameters, $filteredTable);
-                $filteredTables[$k] = $filteredTable;
-                $writer->write($this->createExportConfig($filteredTable));
-            }
-            foreach ($filteredTables as $filteredTable) {
-                $writer->createForeignKeys($this->createExportConfig($filteredTable));
-            }
-        } else {
-            $parameters = $this->validateTableItems($parameters);
-            $writer->write($this->createExportConfig($parameters));
-        }
+        $writer->write($this->createExportConfig($parameters));
     }
 
     protected function loadConfig(): void

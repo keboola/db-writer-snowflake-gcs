@@ -37,8 +37,6 @@ class SnowflakeTableNodesDecorator extends TableNodesDecorator
                     ->scalarNode('size')->beforeNormalization()->always(fn($v) => (string) $v)->end()->end()
                     ->scalarNode('nullable')->end()
                     ->scalarNode('default')->end()
-                    ->scalarNode('foreignKeyTable')->cannotBeEmpty()->end()
-                    ->scalarNode('foreignKeyColumn')->cannotBeEmpty()->end()
                 ->end()
             ->end();
     }
