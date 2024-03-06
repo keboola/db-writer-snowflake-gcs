@@ -6,11 +6,14 @@ namespace Keboola\DbWriter\Writer;
 
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
 use Keboola\DbWriter\Exception\UserException;
+use Keboola\DbWriter\Writer\Strategy\SqlHelper;
 use Keboola\DbWriterAdapter\ODBC\OdbcWriteAdapter;
 use Keboola\DbWriterAdapter\Query\QueryBuilder;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
+use Keboola\DbWriterConfig\Configuration\ValueObject\ItemConfig;
 use Keboola\Temp\Temp;
 use Psr\Log\LoggerInterface;
+use RuntimeException;
 use SplFileInfo;
 use Symfony\Component\Process\Process;
 
@@ -28,7 +31,7 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
     public function __construct(
         SnowflakeConnection $connection,
         QueryBuilder $queryBuilder,
-        LoggerInterface $logger
+        LoggerInterface $logger,
     ) {
         parent::__construct($connection, $queryBuilder, $logger);
 
@@ -47,31 +50,22 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
 
         $this->snowSqlConfig = $this->createSnowSqlConfig($databaseConfig);
 
-        // Copy to internal stage
+        // Upload to internal stage
         $this->logger->info(sprintf('Uploading data to internal stage "@~/%s"', $tableName));
         $this->putIntoInternalStage($exportConfig, $tableName);
 
-        $this->logger->info(sprintf('Copying data from internal stage to staging table "%s"', $tableName));
-        $this->connection->exec($this->generateCopyQuery($exportConfig, $tableName));
+        try {
+            $items = array_filter(
+                $exportConfig->getItems(),
+                fn(ItemConfig $item) => strtolower($item->getType()) !== 'ignore',
+            );
 
-        $this->cleanupInternalStage($tableName);
-
-//        try {
-//            $items = array_filter(
-//                $exportConfig->getItems(),
-//                fn(ItemConfig $item) => strtolower($item->getType()) !== 'ignore',
-//            );
-//            $commands = $writeStrategy->generateCopyCommands(
-//                tableName: $tableNameWithSchema,
-//                stageName: $stageName,
-//                items: $items,
-//            );
-//            foreach ($commands as $command) {
-//                $this->connection->exec($command);
-//            }
-//        } finally {
-//            $this->connection->exec($this->queryBuilder->dropStageStatement($this->connection, $stageName));
-//        }
+            // Copy from internal stage to staging table
+            $this->logger->info(sprintf('Copying data from internal stage to staging table "%s"', $tableName));
+            $this->connection->exec($this->generateCopyQuery($exportConfig, $tableName, $items));
+        } finally {
+            $this->cleanupInternalStage($tableName);
+        }
     }
 
     private function putIntoInternalStage(ExportConfig $exportConfig, string $tmpTableName): void
@@ -97,10 +91,10 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         if (!$process->isSuccessful()) {
             $this->logger->error(sprintf('Snowsql error, process output %s', $process->getOutput()));
             $this->logger->error(sprintf('Snowsql error: %s', $process->getErrorOutput()));
-//            throw new Exception(sprintf(
-//                'File download error occurred processing [%s]',
-//                $exportConfig->hasTable() ? $exportConfig->getTable()->getName() : $exportConfig->getOutputTable(),
-//            ));
+            throw new RuntimeException(sprintf(
+                'File upload error occurred processing [%s]',
+                $exportConfig->getTableFilePath(),
+            ));
         }
     }
 
@@ -143,7 +137,10 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         return trim(implode("\n", $sql));
     }
 
-    private function generateCopyQuery(ExportConfig $exportConfig, string $tmpTableName): string
+    /**
+     * @param array<ItemConfig> $items
+     */
+    private function generateCopyQuery(ExportConfig $exportConfig, string $tmpTableName, array $items): string
     {
         $csvOptions = [
             sprintf('FIELD_DELIMITER = %s', $this->quote(',')),
@@ -160,8 +157,14 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         );
 
         return sprintf(
-            'COPY INTO %s FROM @~/%s FILE_FORMAT = (TYPE=CSV %s);',
+            '
+            COPY INTO %s(%s)
+            FROM @~/%s
+            FILE_FORMAT = (TYPE=CSV %s)
+            ;
+            ',
             $tmpTableNameWithSchema,
+            implode(', ', SqlHelper::getQuotedColumnsNames($items)),
             $tmpTableName,
             implode(' ', $csvOptions),
         );
