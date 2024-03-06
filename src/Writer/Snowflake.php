@@ -34,10 +34,10 @@ class Snowflake extends BaseWriter
 
     protected function writeFull(ExportConfig $exportConfig): void
     {
-        $stagingName = $this->adapter->generateTmpName($exportConfig->getDbName());
+        $stageTableName = $this->adapter->generateTmpName($exportConfig->getDbName());
 
         $this->adapter->create(
-            $stagingName,
+            $stageTableName,
             false,
             $exportConfig->getItems(),
             $exportConfig->hasPrimaryKey() ? $exportConfig->getPrimaryKey() : null,
@@ -51,10 +51,10 @@ class Snowflake extends BaseWriter
                 $exportConfig->hasPrimaryKey() ? $exportConfig->getPrimaryKey() : null,
             );
 
-            $this->adapter->writeData($stagingName, $exportConfig);
-            $this->adapter->swapTable($this->connection, $exportConfig->getDbName(), $stagingName);
+            $this->adapter->writeData($stageTableName, $exportConfig);
+            $this->adapter->swapTable($this->connection, $exportConfig->getDbName(), $stageTableName);
         } finally {
-            $this->adapter->drop($stagingName);
+            $this->adapter->drop($stageTableName);
         }
     }
 
