@@ -88,7 +88,6 @@ class DatadirTest extends AbstractDatadirTestCase
      */
     public function testDatadir(DatadirTestSpecificationInterface $specification): void
     {
-
         $tempDatadir = $this->getTempDatadir($specification);
 
         $finder = new Finder();
@@ -97,29 +96,16 @@ class DatadirTest extends AbstractDatadirTestCase
             ->in($this->testProjectDir . '/source/data/in/tables')
             ->name('*.manifest');
 
-        /** @var array<string, array{'stagingStorage': string, 'manifest': array}> $manifestData */
-        $manifestData = json_decode(
-            (string) file_get_contents(
-                __DIR__ . '/../prepare-data/manifestData.json',
-            ),
-            true,
-        );
+        $fs = new Filesystem();
+
         foreach ($files as $file) {
-            $filename = $file->getFilenameWithoutExtension();
-            if (!isset($manifestData[$filename])) {
-                throw new RuntimeException(sprintf('Table in storage for file "%s" not found!', $filename));
-            }
-            $manifestPath = sprintf(
-                '%s/in/tables/%s.manifest',
+            $destPath = sprintf(
+                '%s/in/tables/%s',
                 $tempDatadir->getTmpFolder(),
-                $filename,
+                $file->getFilenameWithoutExtension(),
             );
 
-            $stage = $manifestData[$filename];
-            /** @var array<string, array> $manifest */
-            $manifest = json_decode((string) file_get_contents($manifestPath), true);
-            $manifest[$stage['stagingStorage']] = $stage['manifest'];
-            file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
+            $fs->copy($file->getRealPath(), $destPath);
         }
 
         $process = $this->runScript($tempDatadir->getTmpFolder());

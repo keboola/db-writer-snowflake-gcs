@@ -40,8 +40,7 @@
         "psr-4": {
             "Keboola\\DbWriter\\Snowflake\\Tests\\": "tests/phpunit/",
             "Keboola\\DbWriter\\Snowflake\\TraitTests\\": "tests/traits/",
-            "Keboola\\DbWriter\\Snowflake\\FunctionalTests\\": "tests/functional/",
-            "Keboola\\DbWriter\\Snowflake\\PrepareTestsData\\": "tests/prepare-data/"
+            "Keboola\\DbWriter\\Snowflake\\FunctionalTests\\": "tests/functional/"
         }
     },
     "scripts": {
