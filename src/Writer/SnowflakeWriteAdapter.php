@@ -62,7 +62,9 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
 
             // Copy from internal stage to staging table
             $this->logger->info(sprintf('Copying data from internal stage to staging table "%s"', $tableName));
-            $this->connection->exec($this->generateCopyQuery($exportConfig, $tableName, $items));
+            $query = $this->generateCopyQuery($exportConfig, $tableName, $items);
+            $this->logger->debug($query);
+            $this->connection->exec($query);
         } finally {
             $this->cleanupInternalStage($tableName);
         }
@@ -145,9 +147,10 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         $csvOptions = [
             sprintf('FIELD_DELIMITER = %s', $this->quote(',')),
             sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $this->quote('"')),
-            sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $this->quote('\\\\')),
+            sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $this->quote('\\')),
             sprintf('COMPRESSION = %s', $this->quote('GZIP')),
-            'NULL_IF=()',
+            'SKIP_HEADER = 1',
+            'NULL_IF = ()',
         ];
 
         $tmpTableNameWithSchema = sprintf(

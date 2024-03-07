@@ -99,13 +99,10 @@ class DatadirTest extends AbstractDatadirTestCase
         $fs = new Filesystem();
 
         foreach ($files as $file) {
-            $destPath = sprintf(
-                '%s/in/tables/%s',
-                $tempDatadir->getTmpFolder(),
-                $file->getFilenameWithoutExtension(),
-            );
-
-            $fs->copy($file->getRealPath(), $destPath);
+            $csvFilename = $file->getFilenameWithoutExtension();
+            $sourcePath = sprintf( __DIR__ . '/../common-data/tables/%s', $csvFilename);
+            $destPath = sprintf('%s/in/tables/%s', $tempDatadir->getTmpFolder(), $csvFilename);
+            $fs->copy($sourcePath, $destPath);
         }
 
         $process = $this->runScript($tempDatadir->getTmpFolder());
