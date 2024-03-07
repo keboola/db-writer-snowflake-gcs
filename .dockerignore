@@ -1,1 +1,7 @@
 vendor/
+/data/
+tests/data/out/
+.idea/
+.env
+/build
+/.phpunit.result.cache
