@@ -110,9 +110,8 @@ class Snowflake extends BaseWriter
         } catch (Throwable $e) {
             if (preg_match('/Object does not exist/ui', $e->getMessage())) {
                 throw new UserException(sprintf('Invalid warehouse "%s" specified', $warehouse));
-            } else {
-                throw $e;
             }
+            throw $e;
         }
     }
 
@@ -150,9 +149,8 @@ class Snowflake extends BaseWriter
         } catch (Throwable $e) {
             if (preg_match('/Object does not exist/ui', $e->getMessage())) {
                 throw new UserException(sprintf('Invalid schema "%s" specified', $schema));
-            } else {
-                throw $e;
             }
+            throw $e;
         }
     }
 }

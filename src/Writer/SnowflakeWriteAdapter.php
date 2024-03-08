@@ -6,7 +6,6 @@ namespace Keboola\DbWriter\Writer;
 
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
 use Keboola\DbWriter\Exception\UserException;
-use Keboola\DbWriter\Writer\Strategy\SqlHelper;
 use Keboola\DbWriterAdapter\ODBC\OdbcWriteAdapter;
 use Keboola\DbWriterAdapter\Query\QueryBuilder;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
@@ -167,7 +166,7 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
             ;
             ',
             $tmpTableNameWithSchema,
-            implode(', ', SqlHelper::getQuotedColumnsNames($items)),
+            implode(', ', $this->quoteManyIdentifiers($items, fn(ItemConfig $column) => $column->getDbName())),
             $tmpTableName,
             implode(' ', $csvOptions),
         );
@@ -194,21 +193,21 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         ));
     }
 
-//    /**
-//     * @return array{Field: string, Type: string}[]
-//     */
-//    public function getTableInfo(string $tableName): array
-//    {
-//        /** @var array{name: string, type: string}[] $res */
-//        $res = $this->connection->fetchAll(
-//            $this->queryBuilder->tableInfoQueryStatement($this->connection, $tableName),
-//        );
-//
-//        return array_map(fn(array $item) => [
-//            'Field' => (string) $item['name'],
-//            'Type' => (string) $item['type'],
-//        ], $res);
-//    }
+    /**
+     * @return array{Field: string, Type: string}[]
+     */
+    public function getTableInfo(string $tableName): array
+    {
+        /** @var array{name: string, type: string}[] $res */
+        $res = $this->connection->fetchAll(
+            $this->queryBuilder->tableInfoQueryStatement($this->connection, $tableName),
+        );
+
+        return array_map(fn(array $item) => [
+            'Field' => (string) $item['name'],
+            'Type' => (string) $item['type'],
+        ], $res);
+    }
 
     public function validateTable(string $tableName, array $items): void
     {
