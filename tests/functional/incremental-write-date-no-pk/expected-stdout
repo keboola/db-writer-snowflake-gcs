@@ -3,9 +3,7 @@ Validating warehouse "%s"
 Validating schema "%s"
 Dropping table "incremental_temp_%s"
 Creating temporary table "incremental_temp_%s"
-Writing data to table "incremental_temp_%s"
-Dropping stage "%s"
-Using %s write strategy
-Creating stage "%s"
+Uploading data to internal stage "@~/incremental_temp_%s"
+Copying data from internal stage to staging table "incremental_temp_%s"
 Upserting data to table "incremental"
 Data upserted to table "incremental".
