@@ -145,12 +145,12 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
     private function generateCopyQuery(ExportConfig $exportConfig, string $tmpTableName, array $items): string
     {
         $csvOptions = [
+            'SKIP_HEADER = 1',
             sprintf('FIELD_DELIMITER = %s', $this->quote(',')),
             sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $this->quote('"')),
             sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $this->quote('\\')),
             sprintf('COMPRESSION = %s', $this->quote('GZIP')),
-            'SKIP_HEADER = 1',
-            'NULL_IF = ()',
+            sprintf('NULL_IF = (%s, %s)', $this->quote(''), $this->quote('NULL')),
         ];
 
         $tmpTableNameWithSchema = sprintf(
