@@ -1,9 +1,0 @@
-Creating ODBC connection to "Driver=SnowflakeDSIIDriver;Server=%s;Port=443;Tracing=0;Login_timeout=30;Database="%s";Schema="%s";Warehouse=%s;CLIENT_SESSION_KEEP_ALIVE=TRUE;application="Keboola_Connection"".
-Validating warehouse "%s"
-Validating schema "%s"
-Creating table "%s"
-Creating table "simple-date"
-Uploading data to internal stage "@~/simple-date_temp_%s"
-Copying data from internal stage to staging table "simple-date_temp_%s"
-Swapping table "simple-date_temp_%s" with "simple-date"
-Dropping table "simple-date_temp_%s"
