@@ -105,7 +105,7 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         $this->connection->exec($sql);
     }
 
-    private function generatePutQuery(ExportConfig $exportConfig, string $tmpTableName): string
+    public function generatePutQuery(ExportConfig $exportConfig, string $tmpTableName): string
     {
         /** @var SnowflakeDatabaseConfig $databaseConfig */
         $databaseConfig = $exportConfig->getDatabaseConfig();
@@ -141,7 +141,7 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
     /**
      * @param array<ItemConfig> $items
      */
-    private function generateCopyQuery(ExportConfig $exportConfig, string $tmpTableName, array $items): string
+    public function generateCopyQuery(ExportConfig $exportConfig, string $tmpTableName, array $items): string
     {
         $csvOptions = [
             'SKIP_HEADER = 1',
@@ -157,13 +157,10 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
             $this->quoteIdentifier($tmpTableName),
         );
 
-        return sprintf(
-            '
+        return sprintf('
             COPY INTO %s(%s)
             FROM @~/%s
-            FILE_FORMAT = (TYPE=CSV %s)
-            ;
-            ',
+            FILE_FORMAT = (TYPE=CSV %s);',
             $tmpTableNameWithSchema,
             implode(', ', $this->quoteManyIdentifiers($items, fn(ItemConfig $column) => $column->getDbName())),
             $tmpTableName,

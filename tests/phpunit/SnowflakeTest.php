@@ -335,6 +335,44 @@ class SnowflakeTest extends TestCase
         ];
     }
 
+    public function testGeneratePutQuery(): void
+    {
+        $config = $this->getConfig('simple');
+        $adapter = $this->getWriteAdapter($config);
+        $exportConfig = $this->getExportConfig($config);
+
+        $schema = $config['parameters']['db']['schema'];
+        $database = $config['parameters']['db']['database'];
+        $warehouse = $config['parameters']['db']['warehouse'];
+
+        $expected = "USE WAREHOUSE \"$warehouse\";
+USE DATABASE \"$database\";
+USE SCHEMA \"$database\".\"$schema\";
+PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
+
+        $actual = $adapter->generatePutQuery($exportConfig, 'simple_temp');
+
+        Assert::assertSame($expected, $actual);
+    }
+
+    public function testGenerateCopyQuery(): void
+    {
+        $config = $this->getConfig('simple');
+        $adapter = $this->getWriteAdapter($config);
+        $exportConfig = $this->getExportConfig($config);
+
+        $schema = $config['parameters']['db']['schema'];
+
+        $expected = "
+            COPY INTO \"$schema\".\"simple_temp\"(\"id\", \"name\", \"glasses\", \"age\")
+            FROM @~/simple_temp
+            FILE_FORMAT = (TYPE=CSV SKIP_HEADER = 1 FIELD_DELIMITER = ',' FIELD_OPTIONALLY_ENCLOSED_BY = '\\\"' ESCAPE_UNENCLOSED_FIELD = '\\\\' COMPRESSION = 'GZIP');";
+
+        $actual = $adapter->generateCopyQuery($exportConfig, 'simple_temp', $exportConfig->getItems());
+
+        Assert::assertSame($expected, $actual);
+    }
+
     private function setUserDefaultWarehouse(
         SnowflakeConnection $connection,
         string $username,
