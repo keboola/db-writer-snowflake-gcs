@@ -3,9 +3,9 @@ name: 'GitHub Actions'
   - push
 concurrency: 'ci-${{ github.ref }}'
 env:
-  APP_IMAGE: keboola-component
+  APP_IMAGE: keboola/wr-db-snowflake-gcs
   KBC_DEVELOPERPORTAL_VENDOR: keboola
-  KBC_DEVELOPERPORTAL_APP: keboola.db-writer-snowflake-gcs
+  KBC_DEVELOPERPORTAL_APP: keboola.wr-db-snowflake-gcs
   KBC_DEVELOPERPORTAL_USERNAME: keboola+wr_db_snowflake_gcs
   KBC_DEVELOPERPORTAL_PASSWORD: '${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}'
   DOCKERHUB_USER: 'keboolabot'
