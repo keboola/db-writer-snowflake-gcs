@@ -149,7 +149,6 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
             sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $this->quote('"')),
             sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $this->quote('\\')),
             sprintf('COMPRESSION = %s', $this->quote('GZIP')),
-            sprintf('NULL_IF = (%s, %s)', $this->quote(''), $this->quote('NULL')),
         ];
 
         $tmpTableNameWithSchema = sprintf(
