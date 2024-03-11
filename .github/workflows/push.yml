@@ -8,7 +8,7 @@ env:
   KBC_DEVELOPERPORTAL_APP: keboola.db-writer-snowflake-gcs
   KBC_DEVELOPERPORTAL_USERNAME: keboola+wr_db_snowflake_gcs
   KBC_DEVELOPERPORTAL_PASSWORD: '${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}'
-  DOCKERHUB_USER: ''
+  DOCKERHUB_USER: 'keboolabot'
   DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
   KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
   KBC_TEST_PROJECT_URL: ''
