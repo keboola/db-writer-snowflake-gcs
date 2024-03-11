@@ -90,21 +90,6 @@ class DatadirTest extends AbstractDatadirTestCase
     {
         $tempDatadir = $this->getTempDatadir($specification);
 
-        $finder = new Finder();
-        $files = $finder
-            ->files()
-            ->in($this->testProjectDir . '/source/data/in/tables')
-            ->name('*.manifest');
-
-        $fs = new Filesystem();
-
-        foreach ($files as $file) {
-            $csvFilename = $file->getFilenameWithoutExtension();
-            $sourcePath = sprintf( __DIR__ . '/../common-data/tables/%s', $csvFilename);
-            $destPath = sprintf('%s/in/tables/%s', $tempDatadir->getTmpFolder(), $csvFilename);
-            $fs->copy($sourcePath, $destPath);
-        }
-
         $process = $this->runScript($tempDatadir->getTmpFolder());
 
         $this->dumpTables($tempDatadir->getTmpFolder());
