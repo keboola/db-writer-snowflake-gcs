@@ -2,7 +2,7 @@ version: '3'
 services:
   app: &default
     build: .
-    image: keboola/wr-db-snowflake
+    image: keboola/wr-db-snowflake-gcs
     environment:
       - KBC_RUNID
       - KBC_URL
