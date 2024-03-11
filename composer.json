@@ -45,11 +45,9 @@
     },
     "scripts": {
         "tests": [
-            "@tests-prepare-data",
             "@tests-phpunit",
             "@tests-datadir"
         ],
-        "tests-prepare-data": "php ./tests/prepare-data/prepareData.php",
         "tests-phpunit": "phpunit --testsuite unit",
         "tests-datadir": "phpunit --testsuite functional",
         "tests-perf": "phpunit --testsuite perf",
