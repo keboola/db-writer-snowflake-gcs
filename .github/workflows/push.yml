@@ -1,16 +1,33 @@
 name: 'GitHub Actions'
-'on':
-  - push
+on: [ push ]
 concurrency: 'ci-${{ github.ref }}'
 env:
-  APP_IMAGE: keboola/wr-db-snowflake-gcs
+  # Name of the image
+  APP_IMAGE: keboola/wr-db-snowflake-gcs # must be same in docker-compose.yml
+
+  # Developer portal login
   KBC_DEVELOPERPORTAL_VENDOR: keboola
   KBC_DEVELOPERPORTAL_APP: keboola.wr-db-snowflake-gcs
   KBC_DEVELOPERPORTAL_USERNAME: keboola+wr_db_snowflake_gcs
-  KBC_DEVELOPERPORTAL_PASSWORD: '${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}'
-  DOCKERHUB_USER: 'keboolabot'
-  DOCKERHUB_TOKEN: '${{ secrets.DOCKERHUB_TOKEN }}'
-  KBC_STORAGE_TOKEN: '${{ secrets.KBC_STORAGE_TOKEN }}'
+  KBC_DEVELOPERPORTAL_PASSWORD: ${{ secrets.KBC_DEVELOPERPORTAL_PASSWORD }}
+
+  # DockerHub login
+  DOCKERHUB_USER: keboolabot
+  DOCKERHUB_TOKEN: ${{ secrets.DOCKERHUB_TOKEN }}
+
+  # Test DB
+  DB_HOST: kebooladev.snowflakecomputing.com
+  DB_PORT: 443
+  DB_USER: snowflake_writer_gcs
+  DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_DATABASE: snowflake_writer_gcs
+  DB_SCHEMA: snowflake_writer_gcs
+  DB_WAREHOUSE: snowflake_writer_gcs
+
+  # Testing staging storage projects
+  KBC_RUNID: 123456
+  KBC_STORAGE_TOKEN: ''
+  KBC_URL: 'https://connection.keboola.com/'
   KBC_TEST_PROJECT_URL: ''
   KBC_TEST_PROJECT_CONFIGS: ''
 jobs:
@@ -21,7 +38,7 @@ jobs:
       is_semantic_tag: '${{ steps.tag.outputs.is_semantic_tag }}'
     steps:
       - name: 'Check out the repo'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: 'Print Docker version'
         run: 'docker -v'
       - name: 'Docker login'
@@ -40,31 +57,33 @@ jobs:
       - name: 'Push image to ECR'
         uses: keboola/action-push-to-ecr@master
         with:
-          vendor: '${{ env.KBC_DEVELOPERPORTAL_VENDOR }}'
-          app_id: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
-          username: '${{ env.KBC_DEVELOPERPORTAL_USERNAME }}'
-          password: '${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}'
-          tag: '${{ steps.tag.outputs.app_image_tag }}'
-          push_latest: '${{ steps.tag.outputs.is_semantic_tag }}'
-          source_image: '${{ env.APP_IMAGE}}'
+          vendor: ${{ env.KBC_DEVELOPERPORTAL_VENDOR }}
+          app_id: ${{ env.KBC_DEVELOPERPORTAL_APP }}
+          username: ${{ env.KBC_DEVELOPERPORTAL_USERNAME }}
+          password: ${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}
+          tag: ${{ steps.tag.outputs.app_image_tag }}
+          push_latest: ${{ steps.tag.outputs.is_semantic_tag }}
+          source_image: ${{ env.APP_IMAGE}}
   tests:
     needs: build
     runs-on: ubuntu-latest
     steps:
       - name: 'Check out the repo'
-        uses: actions/checkout@v3
+        uses: actions/checkout@v4
       - name: 'Pull image from ECR'
         uses: keboola/action-pull-from-ecr@master
         with:
-          vendor: '${{ env.KBC_DEVELOPERPORTAL_VENDOR }}'
-          app_id: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
-          username: '${{ env.KBC_DEVELOPERPORTAL_USERNAME }}'
-          password: '${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}'
-          tag: '${{ needs.build.outputs.app_image_tag }}'
-          target_image: '${{ env.APP_IMAGE}}'
+          vendor: ${{ env.KBC_DEVELOPERPORTAL_VENDOR }}
+          app_id: ${{ env.KBC_DEVELOPERPORTAL_APP }}
+          username: ${{ env.KBC_DEVELOPERPORTAL_USERNAME }}
+          password: ${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}
+          tag: ${{ needs.build.outputs.app_image_tag }}
+          target_image: ${{ env.APP_IMAGE}}
           tag_as_latest: true
       - name: 'Run tests'
-        run: 'docker run ${{env.APP_IMAGE}} composer ci'
+        run: |
+          docker-compose run --rm \
+          app composer ci
   tests-in-kbc:
     needs: build
     runs-on: ubuntu-latest
@@ -73,10 +92,10 @@ jobs:
         if: 'env.KBC_STORAGE_TOKEN && env.KBC_TEST_PROJECT_CONFIGS'
         uses: keboola/action-run-configs-parallel@master
         with:
-          token: '${{ env.KBC_STORAGE_TOKEN }}'
-          componentId: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
-          tag: '${{ needs.build.outputs.app_image_tag }}'
-          configs: '${{ env.KBC_TEST_PROJECT_CONFIGS }}'
+          token: ${{ env.KBC_STORAGE_TOKEN }}
+          componentId: ${{ env.KBC_DEVELOPERPORTAL_APP }}
+          tag: ${{ needs.build.outputs.app_image_tag }}
+          configs: ${{ env.KBC_TEST_PROJECT_CONFIGS }}
   deploy:
     needs:
       - build
@@ -88,8 +107,8 @@ jobs:
       - name: 'Set tag in the Developer Portal'
         uses: keboola/action-set-tag-developer-portal@master
         with:
-          vendor: '${{ env.KBC_DEVELOPERPORTAL_VENDOR }}'
-          app_id: '${{ env.KBC_DEVELOPERPORTAL_APP }}'
-          username: '${{ env.KBC_DEVELOPERPORTAL_USERNAME }}'
-          password: '${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}'
-          tag: '${{ needs.build.outputs.app_image_tag }}'
+          vendor: ${{ env.KBC_DEVELOPERPORTAL_VENDOR }}
+          app_id: ${{ env.KBC_DEVELOPERPORTAL_APP }}
+          username: ${{ env.KBC_DEVELOPERPORTAL_USERNAME }}
+          password: ${{ env.KBC_DEVELOPERPORTAL_PASSWORD }}
+          tag: ${{ needs.build.outputs.app_image_tag }}
