@@ -196,7 +196,7 @@ class SnowflakeTest extends TestCase
     public function testInvalidWarehouse(): void
     {
         $config = $this->getConfig('simple');
-        $config['parameters']['db']['warehouse'] = uniqid();
+        $config['parameters']['db']['warehouse'] = uniqid('', true);
         /** @var SnowflakeDatabaseConfig $databaseConfig */
         $databaseConfig = $this->getExportConfig($config)->getDatabaseConfig();
 
@@ -211,7 +211,7 @@ class SnowflakeTest extends TestCase
     public function testInvalidSchema(): void
     {
         $config = $this->getConfig('simple');
-        $config['parameters']['db']['schema'] = uniqid();
+        $config['parameters']['db']['schema'] = uniqid('', true);
         /** @var SnowflakeDatabaseConfig $databaseConfig */
         $databaseConfig = $this->getExportConfig($config)->getDatabaseConfig();
 
@@ -355,6 +355,9 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
         Assert::assertSame($expected, $actual);
     }
 
+    /**
+     * @phpcs:disable Generic.Files.LineLength
+     */
     public function testGenerateCopyQuery(): void
     {
         $config = $this->getConfig('simple');
@@ -366,7 +369,9 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
         $expected = "
             COPY INTO \"$schema\".\"simple_temp\"(\"id\", \"name\", \"glasses\", \"age\")
             FROM @~/simple_temp
-            FILE_FORMAT = (TYPE=CSV SKIP_HEADER = 1 FIELD_DELIMITER = ',' FIELD_OPTIONALLY_ENCLOSED_BY = '\\\"' ESCAPE_UNENCLOSED_FIELD = '\\\\' COMPRESSION = 'GZIP');";
+            FILE_FORMAT = (TYPE=CSV SKIP_HEADER = 1 FIELD_DELIMITER = ',' FIELD_OPTIONALLY_ENCLOSED_BY = '\\\"' ESCAPE_UNENCLOSED_FIELD = '\\\\' COMPRESSION = 'GZIP')
+            ;
+            ";
 
         $actual = $adapter->generateCopyQuery($exportConfig, 'simple_temp', $exportConfig->getItems());
 

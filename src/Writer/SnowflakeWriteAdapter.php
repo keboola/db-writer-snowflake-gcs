@@ -157,10 +157,13 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
             $this->quoteIdentifier($tmpTableName),
         );
 
-        return sprintf('
+        return sprintf(
+            '
             COPY INTO %s(%s)
             FROM @~/%s
-            FILE_FORMAT = (TYPE=CSV %s);',
+            FILE_FORMAT = (TYPE=CSV %s)
+            ;
+            ',
             $tmpTableNameWithSchema,
             implode(', ', $this->quoteManyIdentifiers($items, fn(ItemConfig $column) => $column->getDbName())),
             $tmpTableName,

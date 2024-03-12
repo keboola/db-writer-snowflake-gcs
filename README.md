@@ -69,27 +69,27 @@ Writes data to Snowflake Database.
 
 Required snowflake resource for writer:
 ```sql
-CREATE DATABASE "snowflake_writer";
-USE DATABASE "snowflake_writer";
-CREATE TRANSIENT SCHEMA "snowflake_writer";
-CREATE WAREHOUSE "snowflake_writer" WITH 
+CREATE DATABASE "snowflake_writer_gcs";
+USE DATABASE "snowflake_writer_gcs";
+CREATE TRANSIENT SCHEMA "snowflake_writer_gcs";
+CREATE WAREHOUSE "snowflake_writer_gcs" WITH 
   WAREHOUSE_SIZE = 'XSMALL' 
   WAREHOUSE_TYPE = 'STANDARD' 
   AUTO_SUSPEND = 900 
   AUTO_RESUME = TRUE;
-CREATE ROLE "snowflake_writer";
-GRANT USAGE ON WAREHOUSE "snowflake_writer" TO ROLE "snowflake_writer";
-GRANT USAGE ON DATABASE "snowflake_writer" TO ROLE "snowflake_writer";
-GRANT ALL ON SCHEMA "snowflake_writer" TO ROLE "snowflake_writer";
-GRANT ALL ON FUTURE TABLES IN SCHEMA "snowflake_writer" TO ROLE "snowflake_writer";
-GRANT ALL ON FUTURE VIEWS IN SCHEMA "snowflake_writer" TO ROLE "snowflake_writer";
-CREATE USER "snowflake_writer" 
+CREATE ROLE "snowflake_writer_gcs";
+GRANT USAGE ON WAREHOUSE "snowflake_writer_gcs" TO ROLE "snowflake_writer_gcs";
+GRANT USAGE ON DATABASE "snowflake_writer_gcs" TO ROLE "snowflake_writer_gcs";
+GRANT ALL ON SCHEMA "snowflake_writer_gcs" TO ROLE "snowflake_writer_gcs";
+GRANT ALL ON FUTURE TABLES IN SCHEMA "snowflake_writer_gcs" TO ROLE "snowflake_writer_gcs";
+GRANT ALL ON FUTURE VIEWS IN SCHEMA "snowflake_writer_gcs" TO ROLE "snowflake_writer_gcs";
+CREATE USER "snowflake_writer_gcs" 
   PASSWORD = 'password' 
-  DEFAULT_ROLE = "snowflake_writer" 
-  DEFAULT_WAREHOUSE = "snowflake_writer" 
-  DEFAULT_NAMESPACE = "snowflake_writer"."snowflake_writer" 
+  DEFAULT_ROLE = "snowflake_writer_gcs" 
+  DEFAULT_WAREHOUSE = "snowflake_writer_gcs" 
+  DEFAULT_NAMESPACE = "snowflake_writer_gcs"."snowflake_writer_gcs" 
   MUST_CHANGE_PASSWORD = FALSE;
-GRANT ROLE "snowflake_writer" TO USER "snowflake_writer";
+GRANT ROLE "snowflake_writer_gcs" TO USER "snowflake_writer_gcs";
 ```
 
 App is developed on localhost using TDD.
@@ -99,7 +99,6 @@ App is developed on localhost using TDD.
 3. Install dependencies: `docker-compose run --rm php composer install -n`
 4. Create `.env` file:
 ```bash
-STORAGE_API_TOKEN=
 KBC_URL=
 KBC_RUNID=
 DB_HOST=
