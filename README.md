@@ -9,60 +9,68 @@ Writes data to Snowflake Database.
 ## Example configuration
 
 ```json
-    {
-      "db": {        
-        "host": "HOST",
-        "port": "PORT",
-        "database": "DATABASE",
-        "user": "USERNAME",
-        "password": "PASSWORD",
-        "schema": "SCHEMA",
-        "warehouse": "WAREHOUSE",
-        "ssh": {
-          "enabled": true,
-          "keys": {
-            "private": "ENCRYPTED_PRIVATE_SSH_KEY",
-            "public": "PUBLIC_SSH_KEY"
-          },
-          "sshHost": "PROXY_HOSTNAME"
-        }
+{
+  "parameters": {
+    "db": {
+      "host": "HOST",
+      "port": "PORT",
+      "database": "DATABASE",
+      "user": "USERNAME",
+      "password": "PASSWORD",
+      "schema": "SCHEMA",
+      "warehouse": "WAREHOUSE",
+      "ssh": {
+        "enabled": true,
+        "keys": {
+          "private": "ENCRYPTED_PRIVATE_SSH_KEY",
+          "public": "PUBLIC_SSH_KEY"
+        },
+        "sshHost": "PROXY_HOSTNAME"
+      }
+    },
+    "tableId": "simple",
+    "dbName": "simple",
+    "export": true,
+    "incremental": false,
+    "primaryKey": ["id"],
+    "items": [
+      {
+        "name": "id",
+        "dbName": "id",
+        "type": "int",
+        "size": null,
+        "nullable": null,
+        "default": null
       },
+      {
+        "name": "name",
+        "dbName": "name",
+        "type": "varchar",
+        "size": 255,
+        "nullable": null,
+        "default": null
+      },
+      {
+        "name": "glasses",
+        "dbName": "glasses",
+        "type": "varchar",
+        "size": 255,
+        "nullable": null,
+        "default": null
+      }
+    ]
+  },
+  "storage": {
+    "input": {
       "tables": [
         {
-          "tableId": "simple",
-          "dbName": "simple",
-          "export": true, 
-          "incremental": true,
-          "primaryKey": ["id"],
-          "items": [
-            {
-              "name": "id",
-              "dbName": "id",
-              "type": "int",
-              "size": null,
-              "nullable": null,
-              "default": null
-            },
-            {
-              "name": "name",
-              "dbName": "name",
-              "type": "nvarchar",
-              "size": 255,
-              "nullable": null,
-              "default": null
-            },
-            {
-              "name": "glasses",
-              "dbName": "glasses",
-              "type": "nvarchar",
-              "size": 255,
-              "nullable": null,
-              "default": null
-            }
-          ]                                
+          "source": "simple",
+          "destination": "simple.csv"
         }
       ]
     }
+  }
+}
 ```
 
 ## Development

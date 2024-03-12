@@ -20,7 +20,7 @@ services:
 
   dev:
     <<: *default
-    platform: linux/amd64 # explicitly set for arm64 developers (snowflake odbc is amd54 only)
+    platform: linux/amd64 # explicitly set for arm64 developers (snowflake odbc is amd64 only)
     volumes:
       - .:/code
       - ./data:/data
