@@ -104,7 +104,7 @@ App is developed on localhost using TDD.
 
 1. Clone from repository: `git clone git@github.com:keboola/db-writer-snowflake.git`
 2. Change directory: `cd db-writer-snowflake`
-3. Install dependencies: `docker-compose run --rm php composer install -n`
+3. Install dependencies: `docker-compose run --rm dev composer install -n`
 4. Create `.env` file:
 ```bash
 KBC_URL=
