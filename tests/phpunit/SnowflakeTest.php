@@ -341,8 +341,12 @@ class SnowflakeTest extends TestCase
     public function testGeneratePutQuery(): void
     {
         $config = $this->getConfig('simple');
-        $adapter = $this->getWriteAdapter($config);
         $exportConfig = $this->getExportConfig($config);
+        $connection = $this->getConnection($config);
+
+        /** @var SnowflakeDatabaseConfig $databaseConfig */
+        $databaseConfig = $exportConfig->getDatabaseConfig();
+        $queryBuilder = new SnowflakeQueryBuilder($databaseConfig);
 
         $schema = $config['parameters']['db']['schema'];
         $database = $config['parameters']['db']['database'];
@@ -353,7 +357,8 @@ USE DATABASE \"$database\";
 USE SCHEMA \"$database\".\"$schema\";
 PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
 
-        $actual = $adapter->generatePutQuery($exportConfig, 'simple_temp');
+        $tableFilePath = $exportConfig->getTableFilePath();
+        $actual = $queryBuilder->putFileQueryStatement($connection, $tableFilePath, 'simple_temp');
 
         Assert::assertSame($expected, $actual);
     }
@@ -364,8 +369,12 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
     public function testGenerateCopyQuery(): void
     {
         $config = $this->getConfig('simple');
-        $adapter = $this->getWriteAdapter($config);
         $exportConfig = $this->getExportConfig($config);
+        $connection = $this->getConnection($config);
+
+        /** @var SnowflakeDatabaseConfig $databaseConfig */
+        $databaseConfig = $exportConfig->getDatabaseConfig();
+        $queryBuilder = new SnowflakeQueryBuilder($databaseConfig);
 
         $schema = $config['parameters']['db']['schema'];
 
@@ -376,7 +385,7 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
             ;
             ";
 
-        $actual = $adapter->generateCopyQuery($exportConfig, 'simple_temp', $exportConfig->getItems());
+        $actual = $queryBuilder->copyIntoTableQueryStatement($connection, 'simple_temp', $exportConfig->getItems());
 
         Assert::assertSame($expected, $actual);
     }

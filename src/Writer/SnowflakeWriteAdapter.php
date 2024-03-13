@@ -61,7 +61,7 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
 
             // Copy from internal stage to staging table
             $this->logger->info(sprintf('Copying data from internal stage to staging table "%s"', $tableName));
-            $query = $this->generateCopyQuery($exportConfig, $tableName, $items);
+            $query = $this->queryBuilder->copyIntoTableQueryStatement($this->connection, $tableName, $items);
             $this->logger->debug($query);
             $this->connection->exec($query);
         } finally {
@@ -71,7 +71,8 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
 
     private function putIntoInternalStage(ExportConfig $exportConfig, string $tmpTableName): void
     {
-        $putSql = $this->generatePutQuery($exportConfig, $tmpTableName);
+        $putSql = $this->queryBuilder
+            ->putFileQueryStatement($this->connection, $exportConfig->getTableFilePath(), $tmpTableName);
 
         $sqlFile = $this->tempDir->createTmpFile('snowsql.sql');
         file_put_contents($sqlFile->getPathname(), $putSql);
@@ -103,72 +104,6 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
     {
         $sql = sprintf('REMOVE @~/%s;', $tmpTableName);
         $this->connection->exec($sql);
-    }
-
-    public function generatePutQuery(ExportConfig $exportConfig, string $tmpTableName): string
-    {
-        /** @var SnowflakeDatabaseConfig $databaseConfig */
-        $databaseConfig = $exportConfig->getDatabaseConfig();
-
-        $warehouse = $databaseConfig->hasWarehouse() ? $databaseConfig->getWarehouse() : null;
-        $database = $databaseConfig->getDatabase();
-        $schema = $databaseConfig->hasSchema() ? $databaseConfig->getSchema() : null;
-
-        $sql = [];
-        if ($warehouse) {
-            $sql[] = sprintf('USE WAREHOUSE %s;', $this->quoteIdentifier($warehouse));
-        }
-
-        $sql[] = sprintf('USE DATABASE %s;', $this->quoteIdentifier($database));
-
-        if ($schema) {
-            $sql[] = sprintf(
-                'USE SCHEMA %s.%s;',
-                $this->quoteIdentifier($database),
-                $this->quoteIdentifier($schema),
-            );
-        }
-
-        $sql[] = sprintf(
-            'PUT file://%s @~/%s;',
-            $exportConfig->getTableFilePath(),
-            $tmpTableName,
-        );
-
-        return trim(implode("\n", $sql));
-    }
-
-    /**
-     * @param array<ItemConfig> $items
-     */
-    public function generateCopyQuery(ExportConfig $exportConfig, string $tmpTableName, array $items): string
-    {
-        $csvOptions = [
-            'SKIP_HEADER = 1',
-            sprintf('FIELD_DELIMITER = %s', $this->quote(',')),
-            sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $this->quote('"')),
-            sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $this->quote('\\')),
-            sprintf('COMPRESSION = %s', $this->quote('GZIP')),
-        ];
-
-        $tmpTableNameWithSchema = sprintf(
-            '%s.%s',
-            $this->quoteIdentifier($exportConfig->getDatabaseConfig()->getSchema()),
-            $this->quoteIdentifier($tmpTableName),
-        );
-
-        return sprintf(
-            '
-            COPY INTO %s(%s)
-            FROM @~/%s
-            FILE_FORMAT = (TYPE=CSV %s)
-            ;
-            ',
-            $tmpTableNameWithSchema,
-            implode(', ', $this->quoteManyIdentifiers($items, fn(ItemConfig $column) => $column->getDbName())),
-            $tmpTableName,
-            implode(' ', $csvOptions),
-        );
     }
 
     public function upsert(ExportConfig $exportConfig, string $stageTableName): void
