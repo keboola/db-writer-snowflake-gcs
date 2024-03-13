@@ -5,13 +5,13 @@ declare(strict_types=1);
 namespace Keboola\DbWriter\Snowflake\Tests;
 
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
-use Keboola\DbWriter\Configuration\ValueObject\SnowflakeExportConfig;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Writer\Snowflake;
 use Keboola\DbWriter\Writer\SnowflakeConnection;
 use Keboola\DbWriter\Writer\SnowflakeConnectionFactory;
 use Keboola\DbWriter\Writer\SnowflakeQueryBuilder;
 use Keboola\DbWriter\Writer\SnowflakeWriteAdapter;
+use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
@@ -483,9 +483,9 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
         return $connection;
     }
 
-    private function getExportConfig(array $config): SnowflakeExportConfig
+    private function getExportConfig(array $config): ExportConfig
     {
-        return SnowflakeExportConfig::fromArray(
+        return ExportConfig::fromArray(
             $config['parameters'],
             $config['storage'],
             SnowflakeDatabaseConfig::fromArray($config['parameters']['db']),

@@ -7,12 +7,11 @@ namespace Keboola\DbWriter;
 use Keboola\Component\Config\BaseConfig;
 use Keboola\Component\UserException;
 use Keboola\DbWriter\Configuration\NodeDefinition\SnowflakeDbNode;
-use Keboola\DbWriter\Configuration\SnowflakeTableNodesDecorator;
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
-use Keboola\DbWriter\Configuration\ValueObject\SnowflakeExportConfig;
 use Keboola\DbWriter\Writer\Snowflake;
 use Keboola\DbWriterConfig\Configuration\ConfigDefinition;
 use Keboola\DbWriterConfig\Configuration\ConfigRowDefinition;
+use Keboola\DbWriterConfig\Configuration\NodeDefinition\TableNodesDecorator;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 class SnowflakeApplication extends Application
@@ -38,7 +37,7 @@ class SnowflakeApplication extends Application
         if (in_array($configDefinitionClass, [ConfigRowDefinition::class, ConfigDefinition::class])) {
             $definition = new $configDefinitionClass(
                 dbNode: (new SnowflakeDbNode())->ignoreExtraKeys(),
-                tableNodesDecorator: new SnowflakeTableNodesDecorator(),
+                tableNodesDecorator: new TableNodesDecorator(),
             );
         } else {
             $definition = new $configDefinitionClass(dbNode: new SnowflakeDbNode());
@@ -59,14 +58,5 @@ class SnowflakeApplication extends Application
     protected function createDatabaseConfig(array $dbParams): SnowflakeDatabaseConfig
     {
         return SnowflakeDatabaseConfig::fromArray($dbParams);
-    }
-
-    protected function createExportConfig(array $table): SnowflakeExportConfig
-    {
-        return SnowflakeExportConfig::fromArray(
-            $table,
-            $this->getConfig()->getInputTables(),
-            $this->createDatabaseConfig($table['db']),
-        );
     }
 }
