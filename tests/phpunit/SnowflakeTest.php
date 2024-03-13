@@ -4,6 +4,7 @@ declare(strict_types=1);
 
 namespace Keboola\DbWriter\Snowflake\Tests;
 
+use Keboola\DbWriter\Configuration\NodeDefinition\SnowflakeDbNode;
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Writer\Snowflake;
@@ -11,11 +12,13 @@ use Keboola\DbWriter\Writer\SnowflakeConnection;
 use Keboola\DbWriter\Writer\SnowflakeConnectionFactory;
 use Keboola\DbWriter\Writer\SnowflakeQueryBuilder;
 use Keboola\DbWriter\Writer\SnowflakeWriteAdapter;
+use Keboola\DbWriterConfig\Configuration\ConfigRowDefinition;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\Test\TestLogger;
+use Symfony\Component\Config\Definition\Processor;
 
 class SnowflakeTest extends TestCase
 {
@@ -512,6 +515,7 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
             'warehouse' => (string) getenv('DB_WAREHOUSE'),
         ];
 
-        return $config;
+        $processor = new Processor();
+        return $processor->processConfiguration(new ConfigRowDefinition(new SnowflakeDbNode()), [$config]);
     }
 }
