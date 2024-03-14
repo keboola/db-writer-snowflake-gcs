@@ -39,14 +39,6 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
         );
     }
 
-    public function dropStageStatement(Connection $connection, string $stageName): string
-    {
-        return sprintf(
-            'DROP STAGE IF EXISTS %s',
-            $connection->quoteIdentifier($stageName),
-        );
-    }
-
     public function tableExistsQueryStatement(Connection $connection, string $tableName): string
     {
         return sprintf(
@@ -70,6 +62,68 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
             $connection->quoteIdentifier($this->databaseConfig->getSchema()),
             $connection->quoteIdentifier($tableName),
             $this->buildPrimaryKeysSqlDefinition($connection, $primaryKeys),
+        );
+    }
+
+    public function putFileQueryStatement(Connection $connection, string $tableFilePath, string $tmpTableName): string
+    {
+        $warehouse = $this->databaseConfig->hasWarehouse() ? $this->databaseConfig->getWarehouse() : null;
+        $database = $this->databaseConfig->getDatabase();
+        $schema = $this->databaseConfig->hasSchema() ? $this->databaseConfig->getSchema() : null;
+
+        $sql = [];
+        if ($warehouse) {
+            $sql[] = sprintf('USE WAREHOUSE %s;', $connection->quoteIdentifier($warehouse));
+        }
+
+        $sql[] = sprintf('USE DATABASE %s;', $connection->quoteIdentifier($database));
+
+        if ($schema) {
+            $sql[] = sprintf(
+                'USE SCHEMA %s.%s;',
+                $connection->quoteIdentifier($database),
+                $connection->quoteIdentifier($schema),
+            );
+        }
+
+        $sql[] = sprintf(
+            'PUT file://%s @~/%s;',
+            $tableFilePath,
+            $tmpTableName,
+        );
+
+        return trim(implode("\n", $sql));
+    }
+
+    public function copyIntoTableQueryStatement(Connection $connection, string $tmpTableName, array $items): string
+    {
+        $csvOptions = [
+            'SKIP_HEADER = 1',
+            sprintf('FIELD_DELIMITER = %s', $connection->quote(',')),
+            sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $connection->quote('"')),
+            sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $connection->quote('\\')),
+            sprintf('COMPRESSION = %s', $connection->quote('GZIP')),
+        ];
+
+        $tmpTableNameWithSchema = sprintf(
+            '%s.%s',
+            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
+            $connection->quoteIdentifier($tmpTableName),
+        );
+
+        $columns = array_map(fn(ItemConfig $column) => $connection->quoteIdentifier($column->getDbName()), $items);
+
+        return sprintf(
+            '
+            COPY INTO %s(%s)
+            FROM @~/%s
+            FILE_FORMAT = (TYPE=CSV %s)
+            ;
+            ',
+            $tmpTableNameWithSchema,
+            implode(', ', $columns),
+            $tmpTableName,
+            implode(' ', $csvOptions),
         );
     }
 
@@ -143,45 +197,6 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
             'DESCRIBE TABLE %s.%s',
             $connection->quoteIdentifier($this->databaseConfig->getSchema()),
             $connection->quoteIdentifier($dbName),
-        );
-    }
-
-    public function describeTableColumnsQueryStatement(Connection $connection, string $tableName): string
-    {
-        return sprintf(
-            'SHOW COLUMNS IN %s.%s',
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($tableName),
-        );
-    }
-
-    public function addUniqueKeyQueryStatement(Connection $connection, string $tableName, string $columnName): string
-    {
-        return sprintf(
-            'ALTER TABLE %s.%s ADD UNIQUE (%s)',
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($tableName),
-            $connection->quoteIdentifier($columnName),
-        );
-    }
-
-    public function addForeignKeyQueryStatement(
-        Connection $connection,
-        string $tableName,
-        string $columnName,
-        string $foreignKeyTable,
-        string $foreignKeyColumn,
-    ): string {
-        return sprintf(
-            'ALTER TABLE %s.%s ADD CONSTRAINT FK_%s_%s FOREIGN KEY (%s) REFERENCES %s.%s(%s)',
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($tableName),
-            $foreignKeyTable,
-            $foreignKeyColumn,
-            $connection->quoteIdentifier($columnName),
-            $connection->quoteIdentifier($this->databaseConfig->getSchema()),
-            $connection->quoteIdentifier($foreignKeyTable),
-            $connection->quoteIdentifier($foreignKeyColumn),
         );
     }
 

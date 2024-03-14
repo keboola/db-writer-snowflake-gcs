@@ -1,8 +1,0 @@
-{
-  "columns": [
-    "id",
-    "col-true-null",
-    "col-true-empty-string",
-    "col-true-string"
-  ]
-}

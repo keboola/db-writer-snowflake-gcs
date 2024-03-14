@@ -2,11 +2,10 @@ version: '3'
 services:
   app: &default
     build: .
-    image: keboola/wr-db-snowflake
+    image: keboola/wr-db-snowflake-gcs
     environment:
       - KBC_RUNID
       - KBC_URL
-      - STORAGE_API_TOKEN
       - DB_HOST
       - DB_PORT
       - DB_USER
@@ -21,7 +20,7 @@ services:
 
   dev:
     <<: *default
-    platform: linux/amd64 # explicitly set for arm64 developers (snowflake odbc is amd54 only)
+    platform: linux/amd64 # explicitly set for arm64 developers (snowflake odbc is amd64 only)
     volumes:
       - .:/code
       - ./data:/data

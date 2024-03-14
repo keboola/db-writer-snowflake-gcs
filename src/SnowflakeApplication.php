@@ -7,12 +7,11 @@ namespace Keboola\DbWriter;
 use Keboola\Component\Config\BaseConfig;
 use Keboola\Component\UserException;
 use Keboola\DbWriter\Configuration\NodeDefinition\SnowflakeDbNode;
-use Keboola\DbWriter\Configuration\SnowflakeTableNodesDecorator;
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
-use Keboola\DbWriter\Configuration\ValueObject\SnowflakeExportConfig;
 use Keboola\DbWriter\Writer\Snowflake;
 use Keboola\DbWriterConfig\Configuration\ConfigDefinition;
 use Keboola\DbWriterConfig\Configuration\ConfigRowDefinition;
+use Keboola\DbWriterConfig\Configuration\NodeDefinition\TableNodesDecorator;
 use Symfony\Component\Config\Definition\Exception\InvalidConfigurationException;
 
 class SnowflakeApplication extends Application
@@ -22,26 +21,12 @@ class SnowflakeApplication extends Application
     protected function run(): void
     {
         $parameters = $this->getConfig()->getParameters();
+        $parameters = $this->validateTableItems($parameters);
+
         $writerFactory = new WriterFactory($this->getConfig());
         /** @var Snowflake $writer */
         $writer = $writerFactory->create($this->getLogger(), $this->createDatabaseConfig($parameters['db']));
-
-        if (!$this->isRowConfiguration($parameters)) {
-            $filteredTables = array_filter($parameters['tables'], fn($table) => $table['export']);
-            unset($parameters['tables']);
-            foreach ($filteredTables as $k => $filteredTable) {
-                $filteredTable = $this->validateTableItems($filteredTable);
-                $filteredTable = array_merge($parameters, $filteredTable);
-                $filteredTables[$k] = $filteredTable;
-                $writer->write($this->createExportConfig($filteredTable));
-            }
-            foreach ($filteredTables as $filteredTable) {
-                $writer->createForeignKeys($this->createExportConfig($filteredTable));
-            }
-        } else {
-            $parameters = $this->validateTableItems($parameters);
-            $writer->write($this->createExportConfig($parameters));
-        }
+        $writer->write($this->createExportConfig($parameters));
     }
 
     protected function loadConfig(): void
@@ -52,7 +37,7 @@ class SnowflakeApplication extends Application
         if (in_array($configDefinitionClass, [ConfigRowDefinition::class, ConfigDefinition::class])) {
             $definition = new $configDefinitionClass(
                 dbNode: (new SnowflakeDbNode())->ignoreExtraKeys(),
-                tableNodesDecorator: new SnowflakeTableNodesDecorator(),
+                tableNodesDecorator: new TableNodesDecorator(),
             );
         } else {
             $definition = new $configDefinitionClass(dbNode: new SnowflakeDbNode());
@@ -73,14 +58,5 @@ class SnowflakeApplication extends Application
     protected function createDatabaseConfig(array $dbParams): SnowflakeDatabaseConfig
     {
         return SnowflakeDatabaseConfig::fromArray($dbParams);
-    }
-
-    protected function createExportConfig(array $table): SnowflakeExportConfig
-    {
-        return SnowflakeExportConfig::fromArray(
-            $table,
-            $this->getConfig()->getInputTables(),
-            $this->createDatabaseConfig($table['db']),
-        );
     }
 }

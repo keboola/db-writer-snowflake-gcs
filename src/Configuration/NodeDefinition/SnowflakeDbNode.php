@@ -5,10 +5,7 @@ declare(strict_types=1);
 namespace Keboola\DbWriter\Configuration\NodeDefinition;
 
 use Keboola\DbWriterConfig\Configuration\NodeDefinition\DbNode;
-use Keboola\DbWriterConfig\Configuration\NodeDefinition\SshNode;
-use Keboola\DbWriterConfig\Configuration\NodeDefinition\SslNode;
 use Symfony\Component\Config\Definition\Builder\NodeBuilder;
-use Symfony\Component\Config\Definition\Builder\NodeParentInterface;
 
 class SnowflakeDbNode extends DbNode
 {

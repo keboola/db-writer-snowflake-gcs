@@ -15,4 +15,9 @@ trait QuoteTrait
     {
         return '"' . str_replace('"', '""', $str) . '"';
     }
+
+    public function quoteManyIdentifiers(array $items, ?callable $mapper = null): array
+    {
+        return array_map(fn($item) => $this->quoteIdentifier($mapper ? $mapper($item) : $item), $items);
+    }
 }

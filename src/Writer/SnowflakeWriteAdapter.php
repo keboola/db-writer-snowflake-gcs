@@ -5,58 +5,104 @@ declare(strict_types=1);
 namespace Keboola\DbWriter\Writer;
 
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
-use Keboola\DbWriter\Configuration\ValueObject\SnowflakeItemConfig;
 use Keboola\DbWriter\Exception\UserException;
-use Keboola\DbWriter\Writer\Strategy\AbsWriteStrategy;
-use Keboola\DbWriter\Writer\Strategy\S3WriteStrategy;
-use Keboola\DbWriter\Writer\Strategy\WriteStrategy;
 use Keboola\DbWriterAdapter\ODBC\OdbcWriteAdapter;
+use Keboola\DbWriterAdapter\Query\QueryBuilder;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ItemConfig;
+use Keboola\Temp\Temp;
+use Psr\Log\LoggerInterface;
+use RuntimeException;
+use SplFileInfo;
+use Symfony\Component\Process\Process;
 
 /**
  * @property-read SnowflakeQueryBuilder $queryBuilder
  */
 class SnowflakeWriteAdapter extends OdbcWriteAdapter
 {
+    use QuoteTrait;
+
+    private Temp $tempDir;
+
+    private SplFileInfo $snowSqlConfig;
+
+    public function __construct(
+        SnowflakeConnection $connection,
+        QueryBuilder $queryBuilder,
+        LoggerInterface $logger,
+    ) {
+        parent::__construct($connection, $queryBuilder, $logger);
+
+        $this->tempDir = new Temp('wr-snowflake-adapter');
+    }
+
+    public function getName(): string
+    {
+        return 'Snowsql';
+    }
+
     public function writeData(string $tableName, ExportConfig $exportConfig): void
     {
-        $this->logger->info(sprintf('Writing data to table "%s"', $tableName));
-
         /** @var SnowflakeDatabaseConfig $databaseConfig */
         $databaseConfig = $exportConfig->getDatabaseConfig();
 
-        $stageName = $this->generateStageName($databaseConfig->hasRunId() ? $databaseConfig->getRunId() : '');
+        $this->snowSqlConfig = $this->createSnowSqlConfig($databaseConfig);
 
-        $this->logger->info(sprintf('Dropping stage "%s"', $stageName));
-        $this->connection->exec($this->queryBuilder->dropStageStatement($this->connection, $stageName));
+        // Upload to internal stage
+        $this->logger->info(sprintf('Uploading data to internal stage "@~/%s"', $tableName));
+        $this->putIntoInternalStage($exportConfig, $tableName);
 
-        $writeStrategy = $this->getTableWriteStrategy($exportConfig->getTableFilePath());
-
-        $this->logger->info(sprintf('Creating stage "%s"', $stageName));
-        $this->connection->exec($writeStrategy->generateCreateStageCommand($stageName));
-
-        $tableNameWithSchema = sprintf(
-            '%s.%s',
-            $this->connection->quoteIdentifier($databaseConfig->getSchema()),
-            $this->connection->quoteIdentifier($tableName),
-        );
         try {
             $items = array_filter(
                 $exportConfig->getItems(),
                 fn(ItemConfig $item) => strtolower($item->getType()) !== 'ignore',
             );
-            $commands = $writeStrategy->generateCopyCommands(
-                tableName: $tableNameWithSchema,
-                stageName: $stageName,
-                items: $items,
-            );
-            foreach ($commands as $command) {
-                $this->connection->exec($command);
-            }
+
+            // Copy from internal stage to staging table
+            $this->logger->info(sprintf('Copying data from internal stage to staging table "%s"', $tableName));
+            $query = $this->queryBuilder->copyIntoTableQueryStatement($this->connection, $tableName, $items);
+            $this->connection->exec($query);
         } finally {
-            $this->connection->exec($this->queryBuilder->dropStageStatement($this->connection, $stageName));
+            $this->cleanupInternalStage($tableName);
         }
+    }
+
+    private function putIntoInternalStage(ExportConfig $exportConfig, string $tmpTableName): void
+    {
+        $putSql = $this->queryBuilder
+            ->putFileQueryStatement($this->connection, $exportConfig->getTableFilePath(), $tmpTableName);
+
+        $sqlFile = $this->tempDir->createTmpFile('snowsql.sql');
+        file_put_contents($sqlFile->getPathname(), $putSql);
+
+        $command = sprintf(
+            'snowsql --config %s -c writer -f %s',
+            $this->snowSqlConfig,
+            $sqlFile,
+        );
+
+        $this->logger->debug($putSql);
+        $this->logger->debug(trim($command));
+
+        $process = Process::fromShellCommandline($command);
+        $process->setTimeout(null);
+        $process->run();
+
+        if (!$process->isSuccessful()) {
+            $this->logger->error(sprintf('Snowsql error, process output %s', $process->getOutput()));
+            $this->logger->error(sprintf('Snowsql error: %s', $process->getErrorOutput()));
+            throw new RuntimeException(sprintf(
+                'File upload error occurred processing [%s]',
+                $exportConfig->getTableFilePath(),
+            ));
+        }
+    }
+
+    private function cleanupInternalStage(string $tmpTableName): void
+    {
+        $sql = sprintf('REMOVE @~/%s;', $tmpTableName);
+        $this->connection->exec($sql);
     }
 
     public function upsert(ExportConfig $exportConfig, string $stageTableName): void
@@ -75,8 +121,8 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         $this->logger->info(sprintf('Swapping table "%s" with "%s"', $stagingTableName, $tableName));
         $connection->exec(sprintf(
             'ALTER TABLE %s SWAP WITH %s',
-            $this->connection->quoteIdentifier($stagingTableName),
-            $this->connection->quoteIdentifier($tableName),
+            $this->quoteIdentifier($stagingTableName),
+            $this->quoteIdentifier($tableName),
         ));
     }
 
@@ -101,110 +147,12 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         // turn off validation
     }
 
-    public function isSameTypeColumns(
-        string $sourceTable,
-        string $sourceColumnName,
-        string $targetTable,
-        string $targetColumnName,
-    ): bool {
-        $sourceColumnDataType = $this->getColumnDataType(
-            $sourceTable,
-            $sourceColumnName,
-        );
-
-        $targetColumnDataType = $this->getColumnDataType(
-            $targetTable,
-            $targetColumnName,
-        );
-
-        return
-            $sourceColumnDataType['type'] === $targetColumnDataType['type'] &&
-            $sourceColumnDataType['length'] === $targetColumnDataType['length'] &&
-            $sourceColumnDataType['nullable'] === $targetColumnDataType['nullable'];
-    }
-
-    public function addUniqueKeyIfMissing(string $targetTable, string $targetColumn): void
-    {
-        $this->logger->info(sprintf(
-            'Adding unique key to table "%s" on column "%s"',
-            $targetTable,
-            $targetColumn,
-        ));
-        $tableInfo = $this->connection->fetchAll(
-            $this->queryBuilder->tableInfoQueryStatement($this->connection, $targetTable),
-        );
-
-        $uniquesInDb = array_filter($tableInfo, fn($v) => $v['unique key'] === 'Y');
-        $uniquesInDb = array_map(fn(array $item) => $item['name'], $uniquesInDb);
-
-        $primaryKeysInDb = $this->getPrimaryKeys($targetTable);
-        $primaryKeysInDb = array_map(fn(array $item) => $item['name'], $primaryKeysInDb);
-
-        if (in_array($targetColumn, $uniquesInDb) || !empty($primaryKeysInDb)) {
-            return;
-        }
-
-        $this->connection->exec(
-            $this->queryBuilder->addUniqueKeyQueryStatement($this->connection, $targetTable, $targetColumn),
-        );
-    }
-
-    public function addForeignKey(string $targetTable, SnowflakeItemConfig $item): void
-    {
-        $this->logger->info(sprintf(
-            'Creating foreign key from table "%s" to table "%s" on column "%s"',
-            $item->getDbName(),
-            $item->getForeignKeyTable(),
-            $item->getForeignKeyColumn(),
-        ));
-        $this->connection->exec(
-            $this->queryBuilder->addForeignKeyQueryStatement(
-                $this->connection,
-                $targetTable,
-                $item->getDbName(),
-                $item->getForeignKeyTable(),
-                $item->getForeignKeyColumn(),
-            ),
-        );
-    }
-
     public function getPrimaryKeys(string $tableName): array
     {
         $sqlPrimaryKeysInDb = $this->connection->fetchAll(
             $this->queryBuilder->tableInfoQueryStatement($this->connection, $tableName),
         );
         return array_filter($sqlPrimaryKeysInDb, fn($v) => $v['primary key'] === 'Y');
-    }
-
-    private function getTableWriteStrategy(string $getTableFilePath): WriteStrategy
-    {
-        /**
-         * @var array{s3?: array, abs?: array} $manifest
-         */
-        $manifest = json_decode(
-            (string) file_get_contents($getTableFilePath . '.manifest'),
-            true,
-        );
-
-        if (isset($manifest[WriteStrategy::FILE_STORAGE_S3])) {
-            $this->logger->info('Using S3 write strategy');
-            return new S3WriteStrategy($manifest[WriteStrategy::FILE_STORAGE_S3]);
-        }
-        if (isset($manifest[WriteStrategy::FILE_STORAGE_ABS])) {
-            $this->logger->info('Using ABS write strategy');
-            return new AbsWriteStrategy($manifest[WriteStrategy::FILE_STORAGE_ABS]);
-        }
-        throw new UserException('Unknown input adapter');
-    }
-
-    private function generateStageName(string $runId): string
-    {
-        $stageName = sprintf(
-            'db-writer-%s',
-            str_replace('.', '-', $runId),
-        );
-
-        return rtrim(mb_substr($stageName, 0, 255), '-');
     }
 
     private function addPrimaryKeyIfMissing(array $primaryKeys, string $tableName): void
@@ -239,20 +187,35 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         }
     }
 
-    private function getColumnDataType(string $table, string $column): array
+    private function createSnowSqlConfig(SnowflakeDatabaseConfig $databaseConfig): SplFileInfo
     {
-        $columns = $this->connection->fetchAll(
-            $this->queryBuilder->describeTableColumnsQueryStatement($this->connection, $table),
-        );
-        /**
-         * @var array{column_name: string, data_type: string}[] $columnData
-         */
-        $columnData = array_values(array_filter($columns, fn($v) => $v['column_name'] === $column));
+        $cliConfig[] = '';
+        $cliConfig[] = '[options]';
+        $cliConfig[] = 'exit_on_error = true';
+        $cliConfig[] = '';
+        $cliConfig[] = '[connections.writer]';
+        $cliConfig[] = sprintf('accountname = "%s"', self::getAccountUrlFromHost($databaseConfig->getHost()));
+        $cliConfig[] = sprintf('username = "%s"', $databaseConfig->getUser());
+        $cliConfig[] = sprintf('password = "%s"', $databaseConfig->getPassword());
+        $cliConfig[] = sprintf('dbname = "%s"', $databaseConfig->getDatabase());
 
-        if (count($columnData) === 0) {
-            throw new UserException(sprintf('Column \'%s\' in table \'%s\' not found', $column, $table));
+        if ($databaseConfig->hasWarehouse()) {
+            $cliConfig[] = sprintf('warehousename = "%s"', $databaseConfig->getWarehouse());
         }
 
-        return (array) json_decode($columnData[0]['data_type'], true);
+        if ($databaseConfig->hasSchema()) {
+            $cliConfig[] = sprintf('schemaname = "%s"', $databaseConfig->getSchema());
+        }
+
+        $file = $this->tempDir->createFile('snowsql.config');
+        file_put_contents($file->getPathname(), implode("\n", $cliConfig));
+
+        return $file;
+    }
+
+    private static function getAccountUrlFromHost(string $host): string
+    {
+        $hostParts = explode('.', $host);
+        return implode('.', array_slice($hostParts, 0, count($hostParts) - 2));
     }
 }

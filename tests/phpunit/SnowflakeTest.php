@@ -4,18 +4,21 @@ declare(strict_types=1);
 
 namespace Keboola\DbWriter\Snowflake\Tests;
 
+use Keboola\DbWriter\Configuration\NodeDefinition\SnowflakeDbNode;
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
-use Keboola\DbWriter\Configuration\ValueObject\SnowflakeExportConfig;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriter\Writer\Snowflake;
 use Keboola\DbWriter\Writer\SnowflakeConnection;
 use Keboola\DbWriter\Writer\SnowflakeConnectionFactory;
 use Keboola\DbWriter\Writer\SnowflakeQueryBuilder;
 use Keboola\DbWriter\Writer\SnowflakeWriteAdapter;
+use Keboola\DbWriterConfig\Configuration\ConfigRowDefinition;
+use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
 use PHPUnit\Framework\Assert;
 use PHPUnit\Framework\TestCase;
 use Psr\Log\LoggerInterface;
 use Psr\Log\Test\TestLogger;
+use Symfony\Component\Config\Definition\Processor;
 
 class SnowflakeTest extends TestCase
 {
@@ -196,7 +199,7 @@ class SnowflakeTest extends TestCase
     public function testInvalidWarehouse(): void
     {
         $config = $this->getConfig('simple');
-        $config['parameters']['db']['warehouse'] = uniqid();
+        $config['parameters']['db']['warehouse'] = uniqid('', true);
         /** @var SnowflakeDatabaseConfig $databaseConfig */
         $databaseConfig = $this->getExportConfig($config)->getDatabaseConfig();
 
@@ -211,7 +214,7 @@ class SnowflakeTest extends TestCase
     public function testInvalidSchema(): void
     {
         $config = $this->getConfig('simple');
-        $config['parameters']['db']['schema'] = uniqid();
+        $config['parameters']['db']['schema'] = uniqid('', true);
         /** @var SnowflakeDatabaseConfig $databaseConfig */
         $databaseConfig = $this->getExportConfig($config)->getDatabaseConfig();
 
@@ -335,6 +338,58 @@ class SnowflakeTest extends TestCase
         ];
     }
 
+    public function testGeneratePutQuery(): void
+    {
+        $config = $this->getConfig('simple');
+        $exportConfig = $this->getExportConfig($config);
+        $connection = $this->getConnection($config);
+
+        /** @var SnowflakeDatabaseConfig $databaseConfig */
+        $databaseConfig = $exportConfig->getDatabaseConfig();
+        $queryBuilder = new SnowflakeQueryBuilder($databaseConfig);
+
+        $schema = $config['parameters']['db']['schema'];
+        $database = $config['parameters']['db']['database'];
+        $warehouse = $config['parameters']['db']['warehouse'];
+
+        $expected = "USE WAREHOUSE \"$warehouse\";
+USE DATABASE \"$database\";
+USE SCHEMA \"$database\".\"$schema\";
+PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
+
+        $tableFilePath = $exportConfig->getTableFilePath();
+        $actual = $queryBuilder->putFileQueryStatement($connection, $tableFilePath, 'simple_temp');
+
+        Assert::assertSame($expected, $actual);
+    }
+
+    /**
+     * @phpcs:disable Generic.Files.LineLength
+     */
+    public function testGenerateCopyQuery(): void
+    {
+        $config = $this->getConfig('simple');
+        $exportConfig = $this->getExportConfig($config);
+        $connection = $this->getConnection($config);
+
+        /** @var SnowflakeDatabaseConfig $databaseConfig */
+        $databaseConfig = $exportConfig->getDatabaseConfig();
+        $queryBuilder = new SnowflakeQueryBuilder($databaseConfig);
+
+        $schema = $config['parameters']['db']['schema'];
+
+        $expected = "
+            COPY INTO \"$schema\".\"simple_temp\"(\"id\", \"name\", \"glasses\", \"age\")
+            FROM @~/simple_temp
+            FILE_FORMAT = (TYPE=CSV SKIP_HEADER = 1 FIELD_DELIMITER = ',' FIELD_OPTIONALLY_ENCLOSED_BY = '\\\"' ESCAPE_UNENCLOSED_FIELD = '\\\\' COMPRESSION = 'GZIP')
+            ;
+            ";
+
+        $actual = $queryBuilder->copyIntoTableQueryStatement($connection, 'simple_temp', $exportConfig->getItems());
+
+        Assert::assertSame($expected, $actual);
+    }
+
     private function setUserDefaultWarehouse(
         SnowflakeConnection $connection,
         string $username,
@@ -440,9 +495,9 @@ class SnowflakeTest extends TestCase
         return $connection;
     }
 
-    private function getExportConfig(array $config): SnowflakeExportConfig
+    private function getExportConfig(array $config): ExportConfig
     {
-        return SnowflakeExportConfig::fromArray(
+        return ExportConfig::fromArray(
             $config['parameters'],
             $config['storage'],
             SnowflakeDatabaseConfig::fromArray($config['parameters']['db']),
@@ -469,6 +524,7 @@ class SnowflakeTest extends TestCase
             'warehouse' => (string) getenv('DB_WAREHOUSE'),
         ];
 
-        return $config;
+        $processor = new Processor();
+        return $processor->processConfiguration(new ConfigRowDefinition(new SnowflakeDbNode()), [$config]);
     }
 }

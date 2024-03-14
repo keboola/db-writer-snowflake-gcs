@@ -88,39 +88,7 @@ class DatadirTest extends AbstractDatadirTestCase
      */
     public function testDatadir(DatadirTestSpecificationInterface $specification): void
     {
-
         $tempDatadir = $this->getTempDatadir($specification);
-
-        $finder = new Finder();
-        $files = $finder
-            ->files()
-            ->in($this->testProjectDir . '/source/data/in/tables')
-            ->name('*.manifest');
-
-        /** @var array<string, array{'stagingStorage': string, 'manifest': array}> $manifestData */
-        $manifestData = json_decode(
-            (string) file_get_contents(
-                __DIR__ . '/../prepare-data/manifestData.json',
-            ),
-            true,
-        );
-        foreach ($files as $file) {
-            $filename = $file->getFilenameWithoutExtension();
-            if (!isset($manifestData[$filename])) {
-                throw new RuntimeException(sprintf('Table in storage for file "%s" not found!', $filename));
-            }
-            $manifestPath = sprintf(
-                '%s/in/tables/%s.manifest',
-                $tempDatadir->getTmpFolder(),
-                $filename,
-            );
-
-            $stage = $manifestData[$filename];
-            /** @var array<string, array> $manifest */
-            $manifest = json_decode((string) file_get_contents($manifestPath), true);
-            $manifest[$stage['stagingStorage']] = $stage['manifest'];
-            file_put_contents($manifestPath, json_encode($manifest, JSON_PRETTY_PRINT));
-        }
 
         $process = $this->runScript($tempDatadir->getTmpFolder());
 
@@ -213,7 +181,7 @@ class DatadirTest extends AbstractDatadirTestCase
     public function getDatabaseConfig(): SnowflakeDatabaseConfig
     {
         $config = [
-            'host' =>  getenv('DB_HOST'),
+            'host' => getenv('DB_HOST'),
             'port' => getenv('DB_PORT'),
             'database' => getenv('DB_DATABASE'),
             'user' => getenv('DB_USER'),

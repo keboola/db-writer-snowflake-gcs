@@ -4,7 +4,7 @@
         "Read more about it at https://getcomposer.org/doc/01-basic-usage.md#installing-dependencies",
         "This file is @generated automatically"
     ],
-    "content-hash": "ca4364b2304b540b0043a721b1556c8e",
+    "content-hash": "fcfac1f31381cc2849df0de0c526bfc3",
     "packages": [
         {
             "name": "guzzlehttp/guzzle",
@@ -493,16 +493,16 @@
         },
         {
             "name": "keboola/db-writer-config",
-            "version": "0.1.0",
+            "version": "0.1.1",
             "source": {
                 "type": "git",
                 "url": "https://github.com/keboola/db-writer-config.git",
-                "reference": "3118fe15c7bf2f594e603a7a0d039e18622bada0"
+                "reference": "48c1e5fbe39fae925e905355e7c0e8621b7220cc"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/keboola/db-writer-config/zipball/3118fe15c7bf2f594e603a7a0d039e18622bada0",
-                "reference": "3118fe15c7bf2f594e603a7a0d039e18622bada0",
+                "url": "https://api.github.com/repos/keboola/db-writer-config/zipball/48c1e5fbe39fae925e905355e7c0e8621b7220cc",
+                "reference": "48c1e5fbe39fae925e905355e7c0e8621b7220cc",
                 "shasum": ""
             },
             "require": {
@@ -538,9 +538,9 @@
             ],
             "description": "Config definition for database writer component",
             "support": {
-                "source": "https://github.com/keboola/db-writer-config/tree/0.1.0"
+                "source": "https://github.com/keboola/db-writer-config/tree/0.1.1"
             },
-            "time": "2024-02-09T20:11:58+00:00"
+            "time": "2024-03-13T14:01:23+00:00"
         },
         {
             "name": "keboola/php-component",
@@ -5482,7 +5482,8 @@
         "php": "^8.2",
         "ext-pdo": "*",
         "ext-json": "*",
-        "ext-mbstring": "*"
+        "ext-mbstring": "*",
+        "ext-odbc": "*"
     },
     "platform-dev": [],
     "plugin-api-version": "2.6.0"

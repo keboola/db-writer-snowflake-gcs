@@ -15,7 +15,7 @@ class SnowflakeConnectionFactory
 
     public function create(SnowflakeDatabaseConfig $databaseConfig, LoggerInterface $logger): SnowflakeConnection
     {
-        $connection = new SnowflakeConnection(
+        return new SnowflakeConnection(
             $logger,
             $this->generateDsn($databaseConfig),
             $databaseConfig->getUser(),
@@ -35,8 +35,6 @@ class SnowflakeConnectionFactory
                 }
             },
         );
-
-        return $connection;
     }
 
     public static function escapePassword(string $password): string

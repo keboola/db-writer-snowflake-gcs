@@ -5,7 +5,6 @@ declare(strict_types=1);
 namespace Keboola\DbWriter\Writer;
 
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
-use Keboola\DbWriter\Configuration\ValueObject\SnowflakeItemConfig;
 use Keboola\DbWriter\Exception\UserException;
 use Keboola\DbWriterAdapter\Connection\Connection;
 use Keboola\DbWriterAdapter\WriteAdapter;
@@ -33,48 +32,12 @@ class Snowflake extends BaseWriter
         parent::__construct($this->databaseConfig, $logger);
     }
 
-    public function createForeignKeys(ExportConfig $exportConfig): void
-    {
-        /** @var SnowflakeItemConfig[] $items */
-        $items = $exportConfig->getItems();
-        $items = array_filter($items, fn(SnowflakeItemConfig $item) => $item->hasForeignKey());
-        if (empty($items)) {
-            return;
-        }
-
-        foreach ($items as $item) {
-            if (!$this->adapter->tableExists($item->getForeignKeyTable())) {
-                continue;
-            }
-
-            $isSameTypeColumns = $this->adapter->isSameTypeColumns(
-                $exportConfig->getDbName(),
-                $item->getName(),
-                $item->getForeignKeyTable(),
-                $item->getForeignKeyColumn(),
-            );
-
-            if (!$isSameTypeColumns) {
-                throw new UserException(sprintf(
-                    'Foreign key column "%s" in table "%s" has different type than column in table "%s"',
-                    $item->getForeignKeyColumn(),
-                    $item->getForeignKeyTable(),
-                    $item->getName(),
-                ));
-            }
-
-            $this->adapter->addUniqueKeyIfMissing($item->getForeignKeyTable(), $item->getForeignKeyColumn());
-
-            $this->adapter->addForeignKey($exportConfig->getDbName(), $item);
-        }
-    }
-
     protected function writeFull(ExportConfig $exportConfig): void
     {
-        $stagingName = $this->adapter->generateTmpName($exportConfig->getDbName());
+        $stageTableName = $this->adapter->generateTmpName($exportConfig->getDbName());
 
         $this->adapter->create(
-            $stagingName,
+            $stageTableName,
             false,
             $exportConfig->getItems(),
             $exportConfig->hasPrimaryKey() ? $exportConfig->getPrimaryKey() : null,
@@ -88,10 +51,10 @@ class Snowflake extends BaseWriter
                 $exportConfig->hasPrimaryKey() ? $exportConfig->getPrimaryKey() : null,
             );
 
-            $this->adapter->writeData($stagingName, $exportConfig);
-            $this->adapter->swapTable($this->connection, $exportConfig->getDbName(), $stagingName);
+            $this->adapter->writeData($stageTableName, $exportConfig);
+            $this->adapter->swapTable($this->connection, $exportConfig->getDbName(), $stageTableName);
         } finally {
-            $this->adapter->drop($stagingName);
+            $this->adapter->drop($stageTableName);
         }
     }
 
@@ -147,9 +110,8 @@ class Snowflake extends BaseWriter
         } catch (Throwable $e) {
             if (preg_match('/Object does not exist/ui', $e->getMessage())) {
                 throw new UserException(sprintf('Invalid warehouse "%s" specified', $warehouse));
-            } else {
-                throw $e;
             }
+            throw $e;
         }
     }
 
@@ -187,9 +149,8 @@ class Snowflake extends BaseWriter
         } catch (Throwable $e) {
             if (preg_match('/Object does not exist/ui', $e->getMessage())) {
                 throw new UserException(sprintf('Invalid schema "%s" specified', $schema));
-            } else {
-                throw $e;
             }
+            throw $e;
         }
     }
 }
