@@ -62,7 +62,6 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
             // Copy from internal stage to staging table
             $this->logger->info(sprintf('Copying data from internal stage to staging table "%s"', $tableName));
             $query = $this->queryBuilder->copyIntoTableQueryStatement($this->connection, $tableName, $items);
-            $this->logger->debug($query);
             $this->connection->exec($query);
         } finally {
             $this->cleanupInternalStage($tableName);
