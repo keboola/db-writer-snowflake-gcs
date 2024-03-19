@@ -26,10 +26,10 @@ env:
 
   # Testing staging storage projects
   KBC_RUNID: 123456
-  KBC_STORAGE_TOKEN: ''
-  KBC_URL: 'https://connection.keboola.com/'
-  KBC_TEST_PROJECT_URL: ''
-  KBC_TEST_PROJECT_CONFIGS: ''
+  KBC_STORAGE_TOKEN: ${{ secrets.KBC_STORAGE_TOKEN }}
+  KBC_URL: 'connection.europe-west3.gcp.keboola.com'
+  KBC_TEST_PROJECT_URL: 'https://connection.europe-west3.gcp.keboola.com/admin/projects/123/'
+  KBC_TEST_PROJECT_CONFIGS: '164792'
 jobs:
   build:
     runs-on: ubuntu-latest
@@ -96,6 +96,7 @@ jobs:
           componentId: ${{ env.KBC_DEVELOPERPORTAL_APP }}
           tag: ${{ needs.build.outputs.app_image_tag }}
           configs: ${{ env.KBC_TEST_PROJECT_CONFIGS }}
+          host: ${{ env.KBC_URL }}
   deploy:
     needs:
       - build
