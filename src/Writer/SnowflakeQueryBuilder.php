@@ -103,6 +103,7 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
             sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $connection->quote('"')),
             sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $connection->quote('\\')),
             sprintf('COMPRESSION = %s', $connection->quote('GZIP')),
+            'NULL_IF = (\'\')',
         ];
 
         $tmpTableNameWithSchema = sprintf(

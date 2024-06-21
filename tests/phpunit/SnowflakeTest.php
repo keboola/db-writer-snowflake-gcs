@@ -381,7 +381,7 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
         $expected = "
             COPY INTO \"$schema\".\"simple_temp\"(\"id\", \"name\", \"glasses\", \"age\")
             FROM @~/simple_temp
-            FILE_FORMAT = (TYPE=CSV SKIP_HEADER = 1 FIELD_DELIMITER = ',' FIELD_OPTIONALLY_ENCLOSED_BY = '\\\"' ESCAPE_UNENCLOSED_FIELD = '\\\\' COMPRESSION = 'GZIP')
+            FILE_FORMAT = (TYPE=CSV SKIP_HEADER = 1 FIELD_DELIMITER = ',' FIELD_OPTIONALLY_ENCLOSED_BY = '\\\"' ESCAPE_UNENCLOSED_FIELD = '\\\\' COMPRESSION = 'GZIP' NULL_IF = (''))
             ;
             ";
 
