@@ -21,6 +21,14 @@
         "default": null
       },
       {
+        "name": "col-null-null",
+        "dbName": "col-null-null",
+        "type": "varchar",
+        "size": 255,
+        "nullable": null,
+        "default": null
+      },
+      {
         "name": "col-true-null",
         "dbName": "col-true-null",
         "type": "varchar",
@@ -42,6 +50,30 @@
         "type": "varchar",
         "size": 255,
         "nullable": true,
+        "default": "test string"
+      },
+      {
+        "name": "col-false-null",
+        "dbName": "col-false-null",
+        "type": "varchar",
+        "size": 255,
+        "nullable": false,
+        "default": null
+      },
+      {
+        "name": "col-false-empty-string",
+        "dbName": "col-false-empty-string",
+        "type": "varchar",
+        "size": 255,
+        "nullable": false,
+        "default": ""
+      },
+      {
+        "name": "col-false-string",
+        "dbName": "col-false-string",
+        "type": "varchar",
+        "size": 255,
+        "nullable": false,
         "default": "test string"
       }
     ]
