@@ -103,7 +103,6 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
             sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $connection->quote('"')),
             sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $connection->quote('\\')),
             sprintf('COMPRESSION = %s', $connection->quote('GZIP')),
-            'NULL_IF = (\'\')',
         ];
 
         $tmpTableNameWithSchema = sprintf(
@@ -114,15 +113,27 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
 
         $columns = array_map(fn(ItemConfig $column) => $connection->quoteIdentifier($column->getDbName()), $items);
 
+        $columnsTransformation = array_map(
+            function (ItemConfig $column, $index) {
+                if ($column->getNullable()) {
+                    return sprintf("IFF($%d = '', null, $%d)", $index + 1, $index + 1);
+                }
+                return sprintf('$%d', $index + 1);
+            },
+            $items,
+            array_keys($items),
+        );
+
         return sprintf(
             '
             COPY INTO %s(%s)
-            FROM @~/%s
+            FROM (SELECT %s FROM @~/%s)
             FILE_FORMAT = (TYPE=CSV %s)
             ;
             ',
             $tmpTableNameWithSchema,
             implode(', ', $columns),
+            implode(', ', $columnsTransformation),
             $tmpTableName,
             implode(' ', $csvOptions),
         );
