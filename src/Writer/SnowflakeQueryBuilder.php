@@ -87,7 +87,7 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
         }
 
         $sql[] = sprintf(
-            'PUT file://%s @~/%s;',
+            'PUT file://%s @~/%s AUTO_COMPRESS=FALSE;',
             $tableFilePath,
             $tmpTableName,
         );
@@ -102,7 +102,6 @@ class SnowflakeQueryBuilder extends DefaultQueryBuilder
             sprintf('FIELD_DELIMITER = %s', $connection->quote(',')),
             sprintf('FIELD_OPTIONALLY_ENCLOSED_BY = %s', $connection->quote('"')),
             sprintf('ESCAPE_UNENCLOSED_FIELD = %s', $connection->quote('\\')),
-            sprintf('COMPRESSION = %s', $connection->quote('GZIP')),
         ];
 
         $tmpTableNameWithSchema = sprintf(
