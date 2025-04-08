@@ -8,6 +8,7 @@ use Keboola\DbWriterConfig\Configuration\ValueObject\DatabaseConfig;
 use Keboola\DbWriterConfig\Configuration\ValueObject\SshConfig;
 use Keboola\DbWriterConfig\Configuration\ValueObject\SslConfig;
 use Keboola\DbWriterConfig\Exception\PropertyNotSetException;
+use Keboola\SnowflakeDbAdapter\Exception\PrivateKeyIsNotValid;
 
 readonly class SnowflakeDatabaseConfig extends DatabaseConfig
 {
@@ -19,6 +20,7 @@ readonly class SnowflakeDatabaseConfig extends DatabaseConfig
         private ?string $runId,
         string $user,
         ?string $password,
+        private ?string $keyPair,
         ?string $schema,
         ?SshConfig $sshConfig,
         ?SslConfig $sslConfig,
@@ -39,7 +41,8 @@ readonly class SnowflakeDatabaseConfig extends DatabaseConfig
             $config['warehouse'] ?? null,
             $runId ?: null,
             $config['user'],
-            $config['#password'],
+            $config['#password'] ?? '',
+            $config['#keyPair'] ?? null,
             $config['schema'],
             $sshEnabled ? SshConfig::fromArray($config['ssh']) : null,
             $sslEnabled ? SslConfig::fromArray($config['ssl']) : null,
@@ -70,5 +73,31 @@ readonly class SnowflakeDatabaseConfig extends DatabaseConfig
             throw new PropertyNotSetException('Property "runId" is not set.');
         }
         return $this->runId;
+    }
+
+    public function hasKeyPair(): bool
+    {
+        return $this->keyPair !== null;
+    }
+
+    public function getKeyPair(): ?string
+    {
+        return $this->keyPair;
+    }
+
+    public function getKeyPairPath(): string
+    {
+        $privateKeyResource = openssl_pkey_get_private($this->getKeyPair() ?? '');
+        if (!$privateKeyResource) {
+            throw new PrivateKeyIsNotValid();
+        }
+
+        $pemPKCS8 = '';
+        openssl_pkey_export($privateKeyResource, $pemPKCS8);
+
+        $privateKeyPath = tempnam(sys_get_temp_dir(), 'snowflake_private_key_' . uniqid()) . '.p8';
+        file_put_contents($privateKeyPath, $pemPKCS8);
+
+        return $privateKeyPath;
     }
 }

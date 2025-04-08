@@ -20,6 +20,7 @@ env:
   DB_PORT: 443
   DB_USER: snowflake_writer_gcs
   DB_PASSWORD: ${{ secrets.DB_PASSWORD }}
+  DB_KEYPAIR: ${{ secrets.DB_KEYPAIR }}
   DB_DATABASE: snowflake_writer_gcs
   DB_SCHEMA: snowflake_writer_gcs
   DB_WAREHOUSE: snowflake_writer_gcs
