@@ -196,7 +196,15 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
         $cliConfig[] = '[connections.writer]';
         $cliConfig[] = sprintf('accountname = "%s"', self::getAccountUrlFromHost($databaseConfig->getHost()));
         $cliConfig[] = sprintf('username = "%s"', $databaseConfig->getUser());
-        $cliConfig[] = sprintf('password = "%s"', $databaseConfig->getPassword());
+
+        if (!empty($databaseConfig->getPassword())) {
+            $cliConfig[] = sprintf('password = "%s"', $databaseConfig->getPassword());
+        }
+
+        if ($databaseConfig->hasKeyPair()) {
+            $cliConfig[] = sprintf('private_key_path = "%s"', $databaseConfig->getKeyPairPath());
+        }
+
         $cliConfig[] = sprintf('dbname = "%s"', $databaseConfig->getDatabase());
 
         if ($databaseConfig->hasWarehouse()) {

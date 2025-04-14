@@ -14,6 +14,7 @@ class SnowflakeDbNode extends DbNode
         parent::init($nodeBuilder);
         $this->addWarehouseNode($nodeBuilder);
         $this->addRunIdNode($nodeBuilder);
+        $this->addKeyPairNode($nodeBuilder);
     }
 
     protected function addHostNode(NodeBuilder $builder): void
@@ -39,5 +40,31 @@ class SnowflakeDbNode extends DbNode
     protected function addRunIdNode(NodeBuilder $builder): void
     {
         $builder->scalarNode('runId');
+    }
+
+    protected function addPasswordNode(NodeBuilder $builder): void
+    {
+        $this->beforeNormalization()->always(function (array $v) {
+            if (isset($v['password'])) {
+                $v['#password'] = $v['password'];
+                unset($v['password']);
+            }
+            return $v;
+        });
+
+        $builder->scalarNode('#password');
+    }
+
+    protected function addKeyPairNode(NodeBuilder $builder): void
+    {
+        $this->beforeNormalization()->always(function (array $v) {
+            if (isset($v['keyPair'])) {
+                $v['#keyPair'] = $v['keyPair'];
+                unset($v['keyPair']);
+            }
+            return $v;
+        });
+
+        $builder->scalarNode('#keyPair');
     }
 }
