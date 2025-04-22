@@ -1,22 +1,22 @@
-FROM php:8.2-cli-buster
+FROM php:8.2-cli-bullseye
 
-ARG SNOWFLAKE_ODBC_VERSION=3.4.1
-ARG SNOWFLAKE_SNOWSQL_VERSION=1.3.2
-ARG SNOWFLAKE_GPG_KEY=630D9F3CAB551AF3
+ARG SNOWFLAKE_ODBC_VERSION=3.7.0
+ARG SNOWFLAKE_SNOWSQL_VERSION=1.3.3
+ARG SNOWFLAKE_GPG_KEY=2A3149C82551A34A
 ENV COMPOSER_ALLOW_SUPERUSER=1
-ENV DEBIAN_FRONTEND noninteractive
+ENV DEBIAN_FRONTEND=noninteractive
 ENV TMPDIR=/opt/snowsqltempdir
 
 RUN mkdir -p /opt/snowsqltempdir
 
-# Install Dependencies
+# Install dependencies
 RUN apt-get update \
   && apt-get install unzip git unixodbc unixodbc-dev libpq-dev debsig-verify libicu-dev -y
 
 RUN docker-php-ext-configure intl \
     && docker-php-ext-install intl
 
-# Install PHP odbc extension
+# Install PHP ODBC extension
 # https://github.com/docker-library/php/issues/103
 RUN set -x \
     && docker-php-source extract \
@@ -27,15 +27,15 @@ RUN set -x \
     && docker-php-ext-install odbc \
     && docker-php-source delete
 
-#snoflake download + verify package
+# Snowflake download + verify package
 COPY driver/snowflake-policy.pol /etc/debsig/policies/$SNOWFLAKE_GPG_KEY/generic.pol
 COPY driver/simba.snowflake.ini /usr/lib/snowflake/odbc/lib/simba.snowflake.ini
 ADD https://sfc-repo.azure.snowflakecomputing.com/odbc/linux/$SNOWFLAKE_ODBC_VERSION/snowflake-odbc-$SNOWFLAKE_ODBC_VERSION.x86_64.deb /tmp/snowflake-odbc.deb
 ADD https://sfc-repo.azure.snowflakecomputing.com/snowsql/bootstrap/1.3/linux_x86_64/snowsql-$SNOWFLAKE_SNOWSQL_VERSION-linux_x86_64.bash /usr/bin/snowsql-linux_x86_64.bash
 ADD https://sfc-repo.azure.snowflakecomputing.com/snowsql/bootstrap/1.3/linux_x86_64/snowsql-$SNOWFLAKE_SNOWSQL_VERSION-linux_x86_64.bash.sig /tmp/snowsql-linux_x86_64.bash.sig
 
-# snowflake - charset settings
-ENV LANG en_US.UTF-8
+# Snowflake - charset settings
+ENV LANG=en_US.UTF-8
 ENV LC_ALL=C.UTF-8
 
 RUN mkdir -p ~/.gnupg \
@@ -57,7 +57,7 @@ RUN mkdir -p ~/.gnupg \
 
 RUN snowsql -v $SNOWFLAKE_SNOWSQL_VERSION
 
-# install composer
+# Install composer
 RUN cd \
   && curl -sS https://getcomposer.org/installer | php \
   && ln -s /root/composer.phar /usr/local/bin/composer
@@ -69,4 +69,4 @@ RUN echo "memory_limit = -1" >> /usr/local/etc/php/conf.d/php.ini
 RUN echo "date.timezone = \"Europe/Prague\"" >> /usr/local/etc/php/conf.d/php.ini
 RUN composer install --no-interaction
 
-CMD php ./src/run.php
+CMD ["php", "./src/run.php"]
