@@ -20,7 +20,7 @@ readonly class SnowflakeDatabaseConfig extends DatabaseConfig
         private ?string $runId,
         string $user,
         ?string $password,
-        private ?string $keyPair,
+        private ?string $privateKey,
         ?string $schema,
         ?SshConfig $sshConfig,
         ?SslConfig $sslConfig,
@@ -42,7 +42,7 @@ readonly class SnowflakeDatabaseConfig extends DatabaseConfig
             $runId ?: null,
             $config['user'],
             $config['#password'] ?? '',
-            $config['#keyPair'] ?? null,
+            $config['#privateKey'] ?? null,
             $config['schema'],
             $sshEnabled ? SshConfig::fromArray($config['ssh']) : null,
             $sslEnabled ? SslConfig::fromArray($config['ssl']) : null,
@@ -75,19 +75,19 @@ readonly class SnowflakeDatabaseConfig extends DatabaseConfig
         return $this->runId;
     }
 
-    public function hasKeyPair(): bool
+    public function hasPrivateKey(): bool
     {
-        return $this->keyPair !== null;
+        return $this->privateKey !== null;
     }
 
-    public function getKeyPair(): ?string
+    public function getPrivateKey(): ?string
     {
-        return $this->keyPair;
+        return $this->privateKey;
     }
 
-    public function getKeyPairPath(): string
+    public function getPrivateKeyPath(): string
     {
-        $privateKeyResource = openssl_pkey_get_private($this->getKeyPair() ?? '');
+        $privateKeyResource = openssl_pkey_get_private($this->getPrivateKey() ?? '');
         if (!$privateKeyResource) {
             throw new PrivateKeyIsNotValid();
         }
