@@ -201,8 +201,8 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
             $cliConfig[] = sprintf('password = "%s"', $databaseConfig->getPassword());
         }
 
-        if ($databaseConfig->hasKeyPair()) {
-            $cliConfig[] = sprintf('private_key_path = "%s"', $databaseConfig->getKeyPairPath());
+        if ($databaseConfig->hasPrivateKey()) {
+            $cliConfig[] = sprintf('private_key_path = "%s"', $databaseConfig->getPrivateKeyPath());
         }
 
         $cliConfig[] = sprintf('dbname = "%s"', $databaseConfig->getDatabase());
