@@ -1,7 +1,7 @@
-FROM php:8.2-cli-bullseye
+FROM php:8.2-cli-trixie
 
-ARG SNOWFLAKE_ODBC_VERSION=3.7.0
-ARG SNOWFLAKE_SNOWSQL_VERSION=1.3.3
+ARG SNOWFLAKE_ODBC_VERSION=3.10.0
+ARG SNOWFLAKE_SNOWSQL_VERSION=1.4.0
 ARG SNOWFLAKE_GPG_KEY=2A3149C82551A34A
 ENV COMPOSER_ALLOW_SUPERUSER=1
 ENV DEBIAN_FRONTEND=noninteractive
@@ -54,6 +54,19 @@ RUN mkdir -p ~/.gnupg \
     && dpkg -i /tmp/snowflake-odbc.deb \
     && SNOWSQL_DEST=/usr/bin SNOWSQL_LOGIN_SHELL=~/.profile bash /usr/bin/snowsql-linux_x86_64.bash \
     && rm /tmp/snowflake-odbc.deb
+
+RUN cat <<EOF > /etc/odbcinst.ini
+[ODBC Drivers]
+SnowflakeDSIIDriver=Installed
+
+[SnowflakeDSIIDriver]
+APILevel=1
+ConnectFunctions=YYY
+Description=Snowflake DSII
+Driver=/usr/lib/snowflake/odbc/lib/libSnowflake.so
+DriverODBCVer=${SNOWFLAKE_ODBC_VERSION}
+SQLLevel=1
+EOF
 
 RUN snowsql -v $SNOWFLAKE_SNOWSQL_VERSION
 
