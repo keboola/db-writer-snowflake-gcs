@@ -536,16 +536,16 @@
         },
         {
             "name": "keboola/db-writer-config",
-            "version": "0.1.1",
+            "version": "0.1.3",
             "source": {
                 "type": "git",
                 "url": "https://github.com/keboola/db-writer-config.git",
-                "reference": "48c1e5fbe39fae925e905355e7c0e8621b7220cc"
+                "reference": "56984ea2efdb33bba85fc59d7410548f87007209"
             },
             "dist": {
                 "type": "zip",
-                "url": "https://api.github.com/repos/keboola/db-writer-config/zipball/48c1e5fbe39fae925e905355e7c0e8621b7220cc",
-                "reference": "48c1e5fbe39fae925e905355e7c0e8621b7220cc",
+                "url": "https://api.github.com/repos/keboola/db-writer-config/zipball/56984ea2efdb33bba85fc59d7410548f87007209",
+                "reference": "56984ea2efdb33bba85fc59d7410548f87007209",
                 "shasum": ""
             },
             "require": {
@@ -581,9 +581,9 @@
             ],
             "description": "Config definition for database writer component",
             "support": {
-                "source": "https://github.com/keboola/db-writer-config/tree/0.1.1"
+                "source": "https://github.com/keboola/db-writer-config/tree/0.1.3"
             },
-            "time": "2024-03-13T14:01:23+00:00"
+            "time": "2026-06-22T14:14:06+00:00"
         },
         {
             "name": "keboola/php-component",
@@ -5525,5 +5525,5 @@
         "ext-odbc": "*"
     },
     "platform-dev": {},
-    "plugin-api-version": "2.6.0"
+    "plugin-api-version": "2.9.0"
 }
