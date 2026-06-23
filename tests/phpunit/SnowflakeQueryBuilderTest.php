@@ -363,6 +363,101 @@ class SnowflakeQueryBuilderTest extends TestCase
     }
 
     /**
+     * Regression test for keboola/db-writer-config 0.1.3.
+     *
+     * ItemConfig::hasSize() previously used PHP empty(), which treats the string "0" as empty,
+     * so size "0" was silently dropped and e.g. TIMESTAMP_NTZ(0) lost its precision (defaulting
+     * to TIMESTAMP_NTZ(9) in Snowflake). Since 0.1.3 the size "0" is correctly applied.
+     *
+     * @dataProvider zeroSizeDataProvider
+     */
+    public function testCreateQueryStatementZeroSize(
+        string $type,
+        string $expectedQuery,
+    ): void {
+        $items = [
+            $this->createItemConfig('col1', $type, '0', false, null),
+        ];
+
+        $result = $this->queryBuilder->createQueryStatement(
+            $this->connection,
+            'test_table',
+            true,
+            $items,
+        );
+
+        self::assertSame($expectedQuery, $result);
+    }
+
+    public static function zeroSizeDataProvider(): Generator
+    {
+        yield 'timestamp_ntz with zero size' => [
+            'type' => 'timestamp_ntz',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table" ("col1" TIMESTAMP_NTZ(0) NOT NULL )',
+        ];
+        yield 'timestamp_ltz with zero size' => [
+            'type' => 'timestamp_ltz',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table" ("col1" TIMESTAMP_LTZ(0) NOT NULL )',
+        ];
+        yield 'timestamp_tz with zero size' => [
+            'type' => 'timestamp_tz',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table" ("col1" TIMESTAMP_TZ(0) NOT NULL )',
+        ];
+        yield 'timestamp with zero size' => [
+            'type' => 'timestamp',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table" ("col1" TIMESTAMP(0) NOT NULL )',
+        ];
+        yield 'time with zero size' => [
+            'type' => 'time',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table" ("col1" TIME(0) NOT NULL )',
+        ];
+        yield 'datetime with zero size' => [
+            'type' => 'datetime',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table" ("col1" DATETIME(0) NOT NULL )',
+        ];
+    }
+
+    /**
+     * Regression test for keboola/db-writer-config 0.1.3.
+     *
+     * ItemConfig::hasDefault() previously used PHP empty(), so a default value of "0" was dropped.
+     * Since 0.1.3 the default "0" is correctly emitted into the DDL.
+     *
+     * @dataProvider zeroDefaultDataProvider
+     */
+    public function testCreateQueryStatementZeroDefault(
+        string $type,
+        string $expectedQuery,
+    ): void {
+        $items = [
+            $this->createItemConfig('col1', $type, null, false, '0'),
+        ];
+
+        $result = $this->queryBuilder->createQueryStatement(
+            $this->connection,
+            'test_table',
+            true,
+            $items,
+        );
+
+        self::assertSame($expectedQuery, $result);
+    }
+
+    public static function zeroDefaultDataProvider(): Generator
+    {
+        yield 'int with zero default' => [
+            'type' => 'int',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table"'
+                . ' ("col1" INT NOT NULL DEFAULT CAST(\'0\' AS INT))',
+        ];
+        yield 'number with zero default' => [
+            'type' => 'number',
+            'expectedQuery' => 'CREATE TEMPORARY TABLE "test_table"'
+                . ' ("col1" NUMBER NOT NULL DEFAULT CAST(\'0\' AS NUMBER))',
+        ];
+    }
+
+    /**
      * @dataProvider nullableDataProvider
      */
     public function testCreateQueryStatementNullable(bool $nullable, string $expectedQuery): void
