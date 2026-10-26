@@ -520,7 +520,7 @@ PUT file:///code/tests/phpunit/in/tables/simple.csv @~/simple_temp;";
             'database' => (string) getenv('DB_DATABASE'),
             'schema' => (string) getenv('DB_SCHEMA'),
             'user' => (string) getenv('DB_USER'),
-            '#password' => (string) getenv('DB_PASSWORD'),
+            '#privateKey' => (string) getenv('DB_PRIVATEKEY'),
             'warehouse' => (string) getenv('DB_WAREHOUSE'),
         ];
 
