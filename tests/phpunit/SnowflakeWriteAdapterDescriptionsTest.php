@@ -72,6 +72,18 @@ class SnowflakeWriteAdapterDescriptionsTest extends TestCase
         ], $this->executedQueries);
     }
 
+    public function testNumericColumnNameIsQuotedAsString(): void
+    {
+        // PHP stores the key as int 123, which is what TableDescriptions really hands to implementers.
+        /** @var array<string, string> $columns */
+        $columns = ['123' => 'Numeric column'];
+        $this->adapter->applyDescriptions('simple', new TableDescriptions(null, $columns));
+
+        self::assertSame([
+            'COMMENT ON COLUMN "simple"."123" IS \'Numeric column\'',
+        ], $this->executedQueries);
+    }
+
     public function testQuotesAreEscaped(): void
     {
         $this->adapter->applyDescriptions('my "table"', new TableDescriptions(

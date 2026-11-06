@@ -143,7 +143,7 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter implements DescriptionWrite
             $this->connection->exec(sprintf(
                 'COMMENT ON COLUMN %s.%s IS %s',
                 $this->quoteIdentifier($tableName),
-                $this->quoteIdentifier($columnName),
+                $this->quoteIdentifier((string) $columnName),
                 $this->quote($description),
             ));
         }
