@@ -178,6 +178,39 @@ class DatadirTest extends AbstractDatadirTestCase
         }
     }
 
+    public function getTableComment(string $tableName): ?string
+    {
+        /** @var array{COMMENT: ?string}[] $rows */
+        $rows = $this->connection->fetchAll(sprintf(
+            'SELECT COMMENT FROM INFORMATION_SCHEMA.TABLES WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s',
+            $this->connection->quote($this->getDatabaseConfig()->getSchema()),
+            $this->connection->quote($tableName),
+        ));
+        if (count($rows) !== 1) {
+            throw new RuntimeException(sprintf('Table "%s" not found.', $tableName));
+        }
+        return $rows[0]['COMMENT'];
+    }
+
+    /**
+     * @return array<string, ?string>
+     */
+    public function getColumnComments(string $tableName): array
+    {
+        /** @var array{COLUMN_NAME: string, COMMENT: ?string}[] $rows */
+        $rows = $this->connection->fetchAll(sprintf(
+            'SELECT COLUMN_NAME, COMMENT FROM INFORMATION_SCHEMA.COLUMNS '
+            . 'WHERE TABLE_SCHEMA = %s AND TABLE_NAME = %s ORDER BY COLUMN_NAME',
+            $this->connection->quote($this->getDatabaseConfig()->getSchema()),
+            $this->connection->quote($tableName),
+        ));
+        $comments = [];
+        foreach ($rows as $row) {
+            $comments[$row['COLUMN_NAME']] = $row['COMMENT'];
+        }
+        return $comments;
+    }
+
     public function getDatabaseConfig(): SnowflakeDatabaseConfig
     {
         $config = [
