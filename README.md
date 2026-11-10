@@ -131,4 +131,4 @@ DB_WAREHOUSE=
 
 ## License
 
-MIT licensed, see [LICENSE](./LICENSE) file.
+MIT licensed, see [LICENSE](./LICENSE.md) file.
