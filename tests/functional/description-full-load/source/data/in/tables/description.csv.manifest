@@ -1,0 +1,22 @@
+{
+  "columns": [
+    "id",
+    "name",
+    "glasses"
+  ],
+  "description": "People and their glasses",
+  "schema": [
+    {
+      "name": "id",
+      "description": "Person identifier"
+    },
+    {
+      "name": "name",
+      "description": "Full name"
+    },
+    {
+      "name": "glasses",
+      "description": ""
+    }
+  ]
+}

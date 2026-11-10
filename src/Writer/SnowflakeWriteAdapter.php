@@ -6,8 +6,10 @@ namespace Keboola\DbWriter\Writer;
 
 use Keboola\DbWriter\Configuration\ValueObject\SnowflakeDatabaseConfig;
 use Keboola\DbWriter\Exception\UserException;
+use Keboola\DbWriterAdapter\DescriptionWriteAdapter;
 use Keboola\DbWriterAdapter\ODBC\OdbcWriteAdapter;
 use Keboola\DbWriterAdapter\Query\QueryBuilder;
+use Keboola\DbWriterAdapter\ValueObject\TableDescriptions;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ExportConfig;
 use Keboola\DbWriterConfig\Configuration\ValueObject\ItemConfig;
 use Keboola\Temp\Temp;
@@ -19,7 +21,7 @@ use Symfony\Component\Process\Process;
 /**
  * @property-read SnowflakeQueryBuilder $queryBuilder
  */
-class SnowflakeWriteAdapter extends OdbcWriteAdapter
+class SnowflakeWriteAdapter extends OdbcWriteAdapter implements DescriptionWriteAdapter
 {
     use QuoteTrait;
 
@@ -124,6 +126,27 @@ class SnowflakeWriteAdapter extends OdbcWriteAdapter
             $this->quoteIdentifier($stagingTableName),
             $this->quoteIdentifier($tableName),
         ));
+    }
+
+    public function applyDescriptions(string $tableName, TableDescriptions $descriptions): void
+    {
+        $table = $descriptions->getTable();
+        if ($table !== null && $table !== '') {
+            $this->connection->exec(sprintf(
+                'COMMENT ON TABLE %s IS %s',
+                $this->quoteIdentifier($tableName),
+                $this->quote($table),
+            ));
+        }
+
+        foreach ($descriptions->getColumns() as $columnName => $description) {
+            $this->connection->exec(sprintf(
+                'COMMENT ON COLUMN %s.%s IS %s',
+                $this->quoteIdentifier($tableName),
+                $this->quoteIdentifier((string) $columnName),
+                $this->quote($description),
+            ));
+        }
     }
 
     /**
